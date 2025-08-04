@@ -3,7 +3,7 @@ Document Classifier Module using BART-Large-MNLI
 For Smart Document Classifier FastAPI Application
 """
 
-from transformers import pipeline
+from transformers import pipeline, AutoTokenizer
 from typing import Dict, Any, List, Optional
 import logging
 import time
@@ -30,6 +30,7 @@ class DocumentClassifier:
     def __init__(self):
         """Initialize the classifier"""
         self.classifier = None
+        self.tokenizer = None
         self.model_name = "facebook/bart-large-mnli"
         self.is_loaded = False
         # Register cleanup function
@@ -39,6 +40,8 @@ class DocumentClassifier:
         """Load the BART-Large-MNLI model"""
         try:
             logger.info(f"Loading {self.model_name} model...")
+            
+            # Load both classifier and tokenizer
             self.classifier = pipeline(
                 "zero-shot-classification", 
                 model=self.model_name,
@@ -46,8 +49,12 @@ class DocumentClassifier:
                 torch_dtype=torch.float32,  # Explicit dtype
                 return_all_scores=True
             )
+            
+            # Load tokenizer for proper text truncation
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+            
             self.is_loaded = True
-            logger.info("Model loaded successfully!")
+            logger.info("Model and tokenizer loaded successfully!")
         except Exception as e:
             logger.error(f"Failed to load model: {str(e)}")
             raise e
@@ -57,9 +64,11 @@ class DocumentClassifier:
         try:
             if self.classifier is not None:
                 logger.info("Cleaning up ML model resources...")
-                # Clear the classifier
+                # Clear the classifier and tokenizer
                 del self.classifier
+                del self.tokenizer
                 self.classifier = None
+                self.tokenizer = None
                 self.is_loaded = False
                 
                 # Force garbage collection
@@ -70,6 +79,8 @@ class DocumentClassifier:
                     torch.cuda.empty_cache()
                     
                 logger.info("ML resources cleaned up successfully")
+        except Exception as e:
+            logger.warning(f"Error during cleanup: {str(e)}")
         except Exception as e:
             logger.warning(f"Error during cleanup: {str(e)}")
     
@@ -101,18 +112,25 @@ class DocumentClassifier:
         categories = categories or self.CATEGORIES
         
         try:
-            # Truncate text if too long (BART token limit ~1024)
-            max_length = 800  # Conservative limit for better performance
-            if len(text) > max_length:
-                text = text[:max_length] + "..."
-                logger.info(f"Text truncated to {max_length} characters")
+            # IMPROVED: Use tokenizer-based truncation instead of character truncation
+            max_tokens = 800  # Conservative limit for BART
+            original_length = len(text)
+            
+            # Count actual tokens using the model's tokenizer
+            tokens = self.tokenizer.encode(text, add_special_tokens=False)
+            
+            if len(tokens) > max_tokens:
+                # Proper token-based truncation
+                truncated_tokens = tokens[:max_tokens]
+                text = self.tokenizer.decode(truncated_tokens, skip_special_tokens=True)
+                logger.info(f"Text truncated from {len(tokens)} to {max_tokens} tokens (chars: {original_length} → {len(text)})")
             
             # Perform classification
             start_time = time.time()
             result = self.classifier(text, categories)
             inference_time = time.time() - start_time
             
-            # Format results
+            # Format results with enhanced information
             classification_result = {
                 "predicted_category": result["labels"][0],
                 "confidence_score": round(result["scores"][0], 4),
@@ -122,7 +140,10 @@ class DocumentClassifier:
                 },
                 "inference_time": round(inference_time, 3),
                 "model_used": self.model_name,
-                "text_length": len(text)
+                "text_length_chars": len(text),
+                "text_length_tokens": len(tokens),
+                "was_truncated": len(tokens) > max_tokens,
+                "original_token_count": len(tokens) if len(tokens) <= max_tokens else len(self.tokenizer.encode(text, add_special_tokens=False))
             }
             
             logger.info(f"Classification completed: {result['labels'][0]} ({result['scores'][0]:.4f})")
