@@ -1,0 +1,19 @@
+This is a sample document for testing the Smart Document Classifier system.
+
+The document classification system is designed to:
+1. Accept document uploads (TXT, PDF, DOCX)
+2. Extract text content from the documents
+3. Store document metadata in a SQLite database
+4. Provide a RESTful API for document management
+5. (Future) Classify documents using machine learning models
+
+This sample document contains various types of content to test the text extraction functionality.
+
+Key Features:
+- Asynchronous processing using FastAPI
+- SQLAlchemy ORM for database operations
+- Support for multiple document formats
+- Clean RESTful API design
+- Built-in web interface for testing
+
+The system is built with scalability and extensibility in mind, making it easy to integrate machine learning models for document classification in the future.
