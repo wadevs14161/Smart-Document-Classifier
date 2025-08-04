@@ -112,18 +112,21 @@ class DocumentClassifier:
         categories = categories or self.CATEGORIES
         
         try:
-            # IMPROVED: Use tokenizer-based truncation instead of character truncation
-            max_tokens = 800  # Conservative limit for BART
+            # IMPROVED: Use adaptive token limits - only truncate when necessary
+            max_tokens = 1000  # Closer to BART's actual limit of 1024
             original_length = len(text)
             
             # Count actual tokens using the model's tokenizer
             tokens = self.tokenizer.encode(text, add_special_tokens=False)
             
+            # Only truncate if we actually exceed the limit
             if len(tokens) > max_tokens:
                 # Proper token-based truncation
                 truncated_tokens = tokens[:max_tokens]
                 text = self.tokenizer.decode(truncated_tokens, skip_special_tokens=True)
                 logger.info(f"Text truncated from {len(tokens)} to {max_tokens} tokens (chars: {original_length} → {len(text)})")
+            else:
+                logger.info(f"Using full text: {len(tokens)} tokens, {original_length} characters")
             
             # Perform classification
             start_time = time.time()
