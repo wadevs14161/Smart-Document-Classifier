@@ -13,6 +13,7 @@ from datetime import datetime
 from .database import get_db, create_tables, Document
 from .schemas import DocumentResponse, DocumentListResponse, UploadResponse, ErrorResponse
 from .document_processor import DocumentProcessor
+from .ml_classifier import classify_document_text, cleanup_ml_resources
 
 # Create FastAPI instance
 app = FastAPI(
@@ -37,6 +38,13 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @app.on_event("startup")
 async def startup_event():
     create_tables()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up resources on shutdown"""
+    print("🔄 Shutting down application...")
+    cleanup_ml_resources()
+    print("✅ Application shutdown complete")
 
 # Root endpoint
 @app.get("/")
@@ -107,16 +115,40 @@ async def upload_document(
         db.commit()
         db.refresh(db_document)
         
+        # Perform automatic classification if text is available
+        classification_result = None
+        if extracted_text:
+            try:
+                classification_result = classify_document_text(extracted_text)
+                if "error" not in classification_result:
+                    db_document.predicted_category = classification_result["predicted_category"]
+                    db_document.confidence_score = classification_result["confidence_score"]
+                    db_document.is_classified = True
+                    db.commit()
+            except Exception as e:
+                # Don't fail upload if classification fails
+                print(f"Classification failed during upload: {str(e)}")
+        
         # Prepare response
         content_preview = DocumentProcessor.get_content_preview(extracted_text) if extracted_text else None
         
-        return UploadResponse(
-            message="Document uploaded successfully",
-            document_id=db_document.id,
-            filename=file.filename,
-            file_size=file_size,
-            content_preview=content_preview
-        )
+        response_data = {
+            "message": "Document uploaded successfully",
+            "document_id": db_document.id,
+            "filename": file.filename,
+            "file_size": file_size,
+            "content_preview": content_preview
+        }
+        
+        # Include classification results if available
+        if classification_result and "error" not in classification_result:
+            response_data["classification"] = {
+                "predicted_category": classification_result["predicted_category"],
+                "confidence_score": classification_result["confidence_score"],
+                "auto_classified": True
+            }
+        
+        return UploadResponse(**response_data)
         
     except HTTPException:
         raise
@@ -199,23 +231,53 @@ async def delete_document(document_id: int, db: Session = Depends(get_db)):
             detail=f"Error deleting document: {str(e)}"
         )
 
-# Placeholder for future ML classification endpoint
+# Classify document using ML model
 @app.post("/documents/{document_id}/classify")
 async def classify_document(document_id: int, db: Session = Depends(get_db)):
     """
-    Classify a document using ML model (to be implemented)
+    Classify a document using BART-Large-MNLI model
     """
-    document = db.query(Document).filter(Document.id == document_id).first()
-    if not document:
-        raise HTTPException(status_code=404, detail="Document not found")
-    
-    # TODO: Implement ML classification here
-    # For now, return a placeholder response
-    return {
-        "message": "Classification feature will be implemented later",
-        "document_id": document_id,
-        "status": "pending"
-    }
+    try:
+        document = db.query(Document).filter(Document.id == document_id).first()
+        if not document:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        if not document.content_text:
+            raise HTTPException(
+                status_code=400, 
+                detail="Document has no text content to classify"
+            )
+        
+        # Perform ML classification
+        classification_result = classify_document_text(document.content_text)
+        
+        if "error" in classification_result:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Classification failed: {classification_result['error']}"
+            )
+        
+        # Update document with classification results
+        document.predicted_category = classification_result["predicted_category"]
+        document.confidence_score = classification_result["confidence_score"]
+        document.is_classified = True
+        
+        db.commit()
+        db.refresh(document)
+        
+        return {
+            "message": "Document classified successfully",
+            "document_id": document_id,
+            "classification_result": classification_result
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error classifying document: {str(e)}"
+        )
 
 # Serve a simple HTML interface for testing
 @app.get("/interface", response_class=HTMLResponse)
@@ -238,7 +300,13 @@ async def document_interface():
         <div class="upload-area">
             <h3>Upload Document</h3>
             <input type="file" id="fileInput" accept=".txt,.pdf,.docx">
-            <button onclick="uploadFile()">Upload</button>
+            <button onclick="uploadFile()">Upload & Classify</button>
+            <div style="margin-top: 10px;">
+                <label>
+                    <input type="checkbox" id="autoClassify" checked> 
+                    Auto-classify on upload
+                </label>
+            </div>
         </div>
         
         <div id="result"></div>
@@ -271,8 +339,19 @@ async def document_interface():
                     const result = await response.json();
                     
                     if (response.ok) {
-                        document.getElementById('result').innerHTML = 
-                            `<div style="color: green;">Upload successful! Document ID: ${result.document_id}</div>`;
+                        let resultHtml = `<div style="color: green;">Upload successful! Document ID: ${result.document_id}</div>`;
+                        
+                        if (result.classification) {
+                            resultHtml += `
+                                <div style="margin-top: 10px; padding: 10px; background: #f0f8ff; border-radius: 5px;">
+                                    <strong>🤖 Auto-Classification Result:</strong><br>
+                                    <strong>Category:</strong> ${result.classification.predicted_category}<br>
+                                    <strong>Confidence:</strong> ${(result.classification.confidence_score * 100).toFixed(1)}%
+                                </div>
+                            `;
+                        }
+                        
+                        document.getElementById('result').innerHTML = resultHtml;
                         loadDocuments();
                     } else {
                         document.getElementById('result').innerHTML = 
@@ -295,11 +374,35 @@ async def document_interface():
                             <strong>${doc.original_filename}</strong> (${doc.file_type.toUpperCase()})
                             <br>Size: ${doc.file_size} bytes
                             <br>Uploaded: ${new Date(doc.upload_timestamp).toLocaleString()}
-                            <br>Classification: ${doc.is_classified ? doc.predicted_category : 'Not classified'}
+                            <br>
+                            ${doc.is_classified ? 
+                                `<span style="color: green;">✅ <strong>${doc.predicted_category}</strong> (${(doc.confidence_score * 100).toFixed(1)}% confidence)</span>` :
+                                `<span style="color: orange;">⏳ Not classified</span> 
+                                 <button onclick="classifyDocument(${doc.id})" style="margin-left: 10px;">Classify Now</button>`
+                            }
                         </div>
                     `).join('');
                 } catch (error) {
                     console.error('Error loading documents:', error);
+                }
+            }
+            
+            async function classifyDocument(docId) {
+                try {
+                    const response = await fetch(`/documents/${docId}/classify`, {
+                        method: 'POST'
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        alert(`Classification successful!\\nCategory: ${result.classification_result.predicted_category}\\nConfidence: ${(result.classification_result.confidence_score * 100).toFixed(1)}%`);
+                        loadDocuments();
+                    } else {
+                        alert(`Classification failed: ${result.detail}`);
+                    }
+                } catch (error) {
+                    alert(`Error: ${error.message}`);
                 }
             }
             

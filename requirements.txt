@@ -13,5 +13,9 @@ aiofiles==23.2.1
 PyPDF2==3.0.1
 python-docx==1.1.0
 
+# Machine Learning
+transformers==4.33.2
+torch==2.0.1
+
 # Testing and development
 requests==2.31.0

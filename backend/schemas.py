@@ -42,6 +42,7 @@ class UploadResponse(BaseModel):
     filename: str
     file_size: int
     content_preview: Optional[str] = None
+    classification: Optional[dict] = None  # For auto-classification results
 
 class ErrorResponse(BaseModel):
     error: str
