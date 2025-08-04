@@ -17,7 +17,10 @@ class DocumentResponse(DocumentBase):
     predicted_category: Optional[str] = None
     confidence_score: Optional[float] = None
     is_classified: bool = False
-    upload_timestamp: datetime
+    classification_time: Optional[datetime] = None
+    inference_time: Optional[float] = None
+    uploaded_at: datetime
+    updated_at: datetime
     
     class Config:
         from_attributes = True
@@ -27,10 +30,14 @@ class DocumentListResponse(BaseModel):
     filename: str
     original_filename: str
     file_size: int
+    content_text: Optional[str] = None  # Add content_text to list response
     predicted_category: Optional[str] = None
     confidence_score: Optional[float] = None
     is_classified: bool = False
-    upload_timestamp: datetime
+    classification_time: Optional[datetime] = None
+    inference_time: Optional[float] = None
+    uploaded_at: datetime
+    updated_at: datetime
     file_type: str
     
     class Config:

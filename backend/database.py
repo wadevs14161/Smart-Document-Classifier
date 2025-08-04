@@ -24,15 +24,18 @@ class Document(Base):
     file_path = Column(String, nullable=False)
     file_size = Column(Integer, nullable=False)
     content_text = Column(Text, nullable=True)  # Extracted text content
+    file_type = Column(String, nullable=False)  # File type (txt, pdf, docx)
     
-    # Classification results (will be implemented later)
+    # Classification results
     predicted_category = Column(String, nullable=True)
     confidence_score = Column(Float, nullable=True)
     is_classified = Column(Boolean, default=False)
+    classification_time = Column(DateTime, nullable=True)  # NEW: Store classification time
+    inference_time = Column(Float, nullable=True)  # NEW: Store inference duration in seconds
     
-    # Metadata
-    upload_timestamp = Column(DateTime, default=datetime.utcnow)
-    file_type = Column(String, nullable=False)  # pdf, txt, docx, etc.
+    # Timestamps
+    uploaded_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     def __repr__(self):
         return f"<Document(id={self.id}, filename={self.filename}, category={self.predicted_category})>"
