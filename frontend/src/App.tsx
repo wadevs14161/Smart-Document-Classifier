@@ -1,35 +1,39 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from 'react';
+import DocumentUpload from './components/DocumentUpload';
+import DocumentList from './components/DocumentList';
+import type { UploadResponse } from './services/api';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const handleUploadSuccess = (result: UploadResponse) => {
+    console.log('Upload successful:', result);
+    // Trigger document list refresh
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="App">
+      <header className="app-header">
+        <div className="header-content">
+          <h1>🤖 Smart Document Classifier</h1>
+          <p>Upload documents and classify them using AI-powered BART-Large-MNLI model</p>
+        </div>
+      </header>
+
+      <main className="app-main">
+        <div className="main-content">
+          <DocumentUpload onUploadSuccess={handleUploadSuccess} />
+          <DocumentList refreshTrigger={refreshTrigger} />
+        </div>
+      </main>
+
+      <footer className="app-footer">
+        <p>Powered by FastAPI + React + BART-Large-MNLI</p>
+      </footer>
+    </div>
+  );
 }
 
-export default App
+export default App;

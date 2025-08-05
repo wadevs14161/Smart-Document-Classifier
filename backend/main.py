@@ -12,10 +12,10 @@ import aiofiles
 from datetime import datetime, timezone
 
 # Import our modules
-from .database import get_db, create_tables, Document
-from .schemas import DocumentResponse, DocumentListResponse, UploadResponse, ErrorResponse
-from .document_processor import DocumentProcessor
-from .ml_classifier import classify_document_text, cleanup_ml_resources
+from database import get_db, create_tables, Document
+from schemas import DocumentResponse, DocumentListResponse, UploadResponse, ErrorResponse
+from document_processor import DocumentProcessor
+from ml_classifier import classify_document_text, cleanup_ml_resources
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

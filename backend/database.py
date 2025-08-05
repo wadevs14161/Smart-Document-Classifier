@@ -4,7 +4,9 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 
 # Database setup
-SQLALCHEMY_DATABASE_URL = "sqlite:///./documents.db"
+import os
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'documents.db')}"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, 
