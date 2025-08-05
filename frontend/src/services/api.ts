@@ -34,10 +34,12 @@ export interface UploadResponse {
   filename: string;
   file_size: number;
   content_preview?: string;
+  warnings?: string[];
   classification?: {
     predicted_category: string;
     confidence_score: number;
-    auto_classified: boolean;
+    all_scores?: Record<string, number>;
+    inference_time?: number;
   };
 }
 

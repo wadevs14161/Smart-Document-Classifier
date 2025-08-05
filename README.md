@@ -220,8 +220,26 @@ curl -X GET "http://localhost:8000/documents" \
 ## 📋 Supported File Types
 
 - **TXT**: Plain text files
-- **PDF**: Portable Document Format
+- **PDF**: Portable Document Format  
 - **DOCX**: Microsoft Word documents
+
+## 🛡️ Error Handling
+
+The application implements comprehensive error handling across all layers:
+
+- **Frontend Validation**: Multi-layered file type checking and user-friendly error messages
+- **Backend Processing**: Robust error handling for file corruption, encoding issues, and processing failures
+- **API Layer**: Structured error responses with appropriate HTTP status codes
+- **Database Operations**: Transaction rollback and resource cleanup on failures
+
+For detailed error handling documentation, see [`docs/ERROR_HANDLING.md`](docs/ERROR_HANDLING.md).
+
+### Error Testing
+```bash
+# Run comprehensive error handling tests
+cd /path/to/compu-J
+python test/test_error_handling.py
+```
 
 ## 🔮 Future Enhancements
 

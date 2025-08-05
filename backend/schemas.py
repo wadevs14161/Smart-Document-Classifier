@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 class DocumentBase(BaseModel):
     filename: str
@@ -51,6 +51,7 @@ class UploadResponse(BaseModel):
     filename: str
     file_size: int
     content_preview: Optional[str] = None
+    warnings: Optional[List[str]] = None
     classification: Optional[dict] = None  # For auto-classification results
 
 class ErrorResponse(BaseModel):

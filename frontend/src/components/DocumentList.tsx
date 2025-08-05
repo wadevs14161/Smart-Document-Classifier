@@ -17,11 +17,25 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
   const fetchDocuments = async () => {
     try {
       setError('');
+      setLoading(true);
       const docs = await documentAPI.getDocuments();
       setDocuments(docs);
+      console.log(`Successfully loaded ${docs.length} documents`);
     } catch (error: any) {
       console.error('Failed to fetch documents:', error);
-      setError(error.response?.data?.detail || 'Failed to load documents');
+      
+      let errorMessage = 'Failed to load documents';
+      if (error.response?.status === 500) {
+        errorMessage = 'Server error while loading documents. Please try again later.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Document service not found. Please check server status.';
+      } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -52,10 +66,24 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
             }
           : doc
       ));
+      console.log(`Successfully classified document ${documentId}`);
     } catch (error: any) {
       console.error('Classification failed:', error);
-      const errorMessage = error.response?.data?.detail || 'Classification failed';
-      alert(`Classification failed: ${errorMessage}`);
+      
+      let errorMessage = 'Classification failed';
+      if (error.response?.status === 404) {
+        errorMessage = 'Document not found. It may have been deleted.';
+      } else if (error.response?.status === 400) {
+        errorMessage = 'Document cannot be classified (no readable text content).';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error during classification. Please try again.';
+      } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+        errorMessage = 'Network error. Please check your connection.';
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      
+      alert(`❌ ${errorMessage}`);
     } finally {
       setClassifyingIds(prev => {
         const newSet = new Set(prev);
@@ -73,10 +101,24 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
     try {
       await documentAPI.deleteDocument(documentId);
       setDocuments(prev => prev.filter(doc => doc.id !== documentId));
+      console.log(`Successfully deleted document ${documentId}: ${filename}`);
     } catch (error: any) {
       console.error('Delete failed:', error);
-      const errorMessage = error.response?.data?.detail || 'Delete failed';
-      alert(`Delete failed: ${errorMessage}`);
+      
+      let errorMessage = 'Delete failed';
+      if (error.response?.status === 404) {
+        errorMessage = 'Document not found. It may have already been deleted.';
+        // Remove from UI anyway since it doesn't exist
+        setDocuments(prev => prev.filter(doc => doc.id !== documentId));
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error during deletion. Please try again.';
+      } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+        errorMessage = 'Network error. Please check your connection.';
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      
+      alert(`❌ ${errorMessage}`);
     }
   };
 
@@ -131,6 +173,24 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
         <div className="loading">
           <span className="spinner-large"></span>
           Loading documents...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="documents-section">
+        <div className="error-state">
+          <div className="error-icon">⚠️</div>
+          <h3>Unable to load documents</h3>
+          <p className="error-message">{error}</p>
+          <button 
+            onClick={fetchDocuments} 
+            className="retry-btn"
+          >
+            🔄 Try Again
+          </button>
         </div>
       </div>
     );

@@ -82,12 +82,26 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onUploadSuccess }) => {
 
     try {
       const result = await documentAPI.uploadDocument(selectedFile);
+      
+      // Handle warnings if present
+      if (result.warnings && result.warnings.length > 0) {
+        const warningMessages = result.warnings.join('; ');
+        console.warn('Upload warnings:', warningMessages);
+      }
+      
       const category = result.classification?.predicted_category || 'Pending classification';
       const topConfidence = result.classification?.confidence_score 
         ? (result.classification.confidence_score * 100).toFixed(1) + '%'
         : 'N/A';
       
-      setUploadStatus(`✅ Upload successfully! Classified as: ${category} ${topConfidence}`);
+      let statusMessage = `✅ Upload successful! Classified as: ${category} (${topConfidence})`;
+      
+      // Add warning indicator if there were issues
+      if (result.warnings && result.warnings.length > 0) {
+        statusMessage += ' ⚠️ (with warnings - check console)';
+      }
+      
+      setUploadStatus(statusMessage);
       onUploadSuccess(result);
       setSelectedFile(null);
       
@@ -97,8 +111,46 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onUploadSuccess }) => {
       
     } catch (error: any) {
       console.error('Upload failed:', error);
-      const errorMessage = error.response?.data?.detail || error.message || 'Unknown error';
-      setUploadStatus(`❌ Upload failed: ${errorMessage}`);
+      
+      let errorMessage = '❌ Upload failed: ';
+      
+      if (error.response?.status === 413) {
+        errorMessage += 'File too large. Maximum size allowed is 10MB.';
+      } else if (error.response?.status === 422) {
+        const errorData = error.response.data;
+        if (typeof errorData === 'object' && errorData.detail) {
+          if (typeof errorData.detail === 'object') {
+            errorMessage += errorData.detail.message || 'Unsupported file type';
+          } else {
+            errorMessage += errorData.detail;
+          }
+        } else {
+          errorMessage += 'Unsupported file type';
+        }
+      } else if (error.response?.status === 400) {
+        const detail = error.response.data?.detail;
+        if (typeof detail === 'string') {
+          errorMessage += detail;
+        } else if (typeof detail === 'object' && detail.message) {
+          errorMessage += detail.message;
+        } else {
+          errorMessage += 'Invalid file or request';
+        }
+      } else if (error.response?.status === 500) {
+        const detail = error.response.data?.detail;
+        if (typeof detail === 'object' && detail.message) {
+          errorMessage += detail.message;
+        } else {
+          errorMessage += 'Server error. Please try again later.';
+        }
+      } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+        errorMessage += 'Network error. Please check your connection.';
+      } else {
+        const fallbackMessage = error.response?.data?.detail || error.message || 'Unknown error';
+        errorMessage += fallbackMessage;
+      }
+      
+      setUploadStatus(errorMessage);
     } finally {
       setIsUploading(false);
     }
