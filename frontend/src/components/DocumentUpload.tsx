@@ -54,11 +54,11 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onUploadSuccess }) => {
     try {
       const result = await documentAPI.uploadDocument(selectedFile);
       const category = result.classification?.predicted_category || 'Pending classification';
-      const confidence = result.classification?.confidence_score 
-        ? `(${(result.classification.confidence_score * 100).toFixed(1)}%)`
-        : '';
+      const topConfidence = result.classification?.confidence_score 
+        ? (result.classification.confidence_score * 100).toFixed(1) + '%'
+        : 'N/A';
       
-      setUploadStatus(`✅ Upload successful! Classified as: ${category} ${confidence}`);
+      setUploadStatus(`✅ Upload successfully! Classified as: ${category} ${topConfidence}`);
       onUploadSuccess(result);
       setSelectedFile(null);
       
