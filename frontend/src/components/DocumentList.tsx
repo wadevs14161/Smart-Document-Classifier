@@ -203,33 +203,20 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
                 {doc.is_classified && doc.predicted_category && (
                   <div className="classification-info">
                     <div className="info-row">
-                      <span className="info-label">Top Category:</span>
+                      <span className="info-label">Classification Results:</span>
                       <span className="category-tag">{doc.predicted_category}</span>
                     </div>
                     
                     {doc.confidence_score && (
                       <div className="confidence-section">
-                        <div className="confidence-header">
-                          <span className="info-label">Top Confidence:</span>
-                          <span className="confidence-value">
-                            {(doc.confidence_score * 100).toFixed(1)}%
-                          </span>
-                        </div>
-                        <div className="confidence-bar">
-                          <div 
-                            className="confidence-fill"
-                            style={{ 
-                              width: `${doc.confidence_score * 100}%`,
-                              backgroundColor: getConfidenceColor(doc.confidence_score)
-                            }}
-                          />
-                        </div>
+
+
                       </div>
                     )}
 
                     {doc.all_scores && (
                       <div className="all-scores-section">
-                        <div className="info-label">All Classification Results:</div>
+                        <div className="info-label">Confidence Scores:</div>
                         <div className="scores-list">
                           {getSortedClassificationScores(doc.all_scores).map(({ category, score }, index) => (
                             <div key={category} className={`score-item ${index === 0 ? 'top-score' : ''}`}>
