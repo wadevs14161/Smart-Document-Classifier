@@ -13,11 +13,27 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onUploadSuccess }) => {
   const [uploadStatus, setUploadStatus] = useState<string>('');
   const [dragActive, setDragActive] = useState(false);
 
+  // Supported file types
+  const supportedTypes = ['text/plain', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'];
+  const supportedExtensions = ['.txt', '.pdf', '.docx', '.doc'];
+
+  const validateFile = (file: File): boolean => {
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    return supportedTypes.includes(file.type) || supportedExtensions.includes(fileExtension);
+  };
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
-      setUploadStatus('');
+      if (validateFile(file)) {
+        setSelectedFile(file);
+        setUploadStatus('');
+      } else {
+        setSelectedFile(null);
+        setUploadStatus('❌ Unsupported file type. Please select a TXT, PDF, or DOCX file.');
+        // Reset file input
+        event.target.value = '';
+      }
     }
   };
 
@@ -37,14 +53,27 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onUploadSuccess }) => {
     setDragActive(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setSelectedFile(e.dataTransfer.files[0]);
-      setUploadStatus('');
+      const file = e.dataTransfer.files[0];
+      if (validateFile(file)) {
+        setSelectedFile(file);
+        setUploadStatus('');
+      } else {
+        setSelectedFile(null);
+        setUploadStatus('❌ Unsupported file type. Please select a TXT, PDF, or DOCX file.');
+      }
     }
   };
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      setUploadStatus('Please select a file first');
+      setUploadStatus('❌ Please select a file first');
+      return;
+    }
+
+    // Double-check file type before upload
+    if (!validateFile(selectedFile)) {
+      setSelectedFile(null);
+      setUploadStatus('❌ Unsupported file type. Please select a TXT, PDF, or DOCX file.');
       return;
     }
 
