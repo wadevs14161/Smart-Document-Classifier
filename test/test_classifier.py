@@ -7,7 +7,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
 
-from ml_classifier import classify_document_text
+from backend.ml_classifier import classify_document_text
 
 def test_truncation():
     print("🧪 Testing Updated ML Classifier with Tokenizer-Based Truncation")
