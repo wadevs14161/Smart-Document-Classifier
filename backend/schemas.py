@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict
 
 class DocumentBase(BaseModel):
     filename: str
@@ -16,6 +16,7 @@ class DocumentResponse(DocumentBase):
     content_text: Optional[str] = None
     predicted_category: Optional[str] = None
     confidence_score: Optional[float] = None
+    all_scores: Optional[Dict[str, float]] = None
     is_classified: bool = False
     classification_time: Optional[datetime] = None
     inference_time: Optional[float] = None
@@ -33,6 +34,7 @@ class DocumentListResponse(BaseModel):
     content_text: Optional[str] = None  # Add content_text to list response
     predicted_category: Optional[str] = None
     confidence_score: Optional[float] = None
+    all_scores: Optional[Dict[str, float]] = None
     is_classified: bool = False
     classification_time: Optional[datetime] = None
     inference_time: Optional[float] = None

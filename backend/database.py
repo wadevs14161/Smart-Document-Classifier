@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, Float, DateTime, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, Text, Float, DateTime, Boolean, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
@@ -31,6 +31,7 @@ class Document(Base):
     # Classification results
     predicted_category = Column(String, nullable=True)
     confidence_score = Column(Float, nullable=True)
+    all_scores = Column(JSON, nullable=True)  # Store all classification scores
     is_classified = Column(Boolean, default=False)
     classification_time = Column(DateTime, nullable=True)  # NEW: Store classification time
     inference_time = Column(Float, nullable=True)  # NEW: Store inference duration in seconds

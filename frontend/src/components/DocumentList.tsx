@@ -44,6 +44,7 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
               ...doc, 
               predicted_category: result.classification_result.predicted_category,
               confidence_score: result.classification_result.confidence_score,
+              all_scores: result.classification_result.all_scores,
               inference_time: result.classification_result.inference_time,
               is_classified: true,
               classification_time: new Date().toISOString(),
@@ -116,6 +117,14 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
     return '#dc3545'; // Red
   };
 
+  const getSortedClassificationScores = (allScores: Record<string, number> | null) => {
+    if (!allScores) return [];
+    
+    return Object.entries(allScores)
+      .map(([category, score]) => ({ category, score }))
+      .sort((a, b) => b.score - a.score);
+  };
+
   if (loading) {
     return (
       <div className="documents-section">
@@ -184,17 +193,24 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
                   <span>{formatDate(doc.uploaded_at)}</span>
                 </div>
                 
+                {doc.inference_time && (
+                  <div className="info-row">
+                    <span className="info-label">Processing Time:</span>
+                    <span>{doc.inference_time.toFixed(3)}s</span>
+                  </div>
+                )}
+                
                 {doc.is_classified && doc.predicted_category && (
                   <div className="classification-info">
                     <div className="info-row">
-                      <span className="info-label">Category:</span>
+                      <span className="info-label">Top Category:</span>
                       <span className="category-tag">{doc.predicted_category}</span>
                     </div>
                     
                     {doc.confidence_score && (
                       <div className="confidence-section">
                         <div className="confidence-header">
-                          <span className="info-label">Confidence:</span>
+                          <span className="info-label">Top Confidence:</span>
                           <span className="confidence-value">
                             {(doc.confidence_score * 100).toFixed(1)}%
                           </span>
@@ -210,11 +226,29 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
                         </div>
                       </div>
                     )}
-                    
-                    {doc.inference_time && (
-                      <div className="info-row">
-                        <span className="info-label">Processing Time:</span>
-                        <span>{doc.inference_time.toFixed(3)}s</span>
+
+                    {doc.all_scores && (
+                      <div className="all-scores-section">
+                        <div className="info-label">All Classification Results:</div>
+                        <div className="scores-list">
+                          {getSortedClassificationScores(doc.all_scores).map(({ category, score }, index) => (
+                            <div key={category} className={`score-item ${index === 0 ? 'top-score' : ''}`}>
+                              <div className="score-header">
+                                <span className="score-category">{category}</span>
+                                <span className="score-percentage">{(score * 100).toFixed(1)}%</span>
+                              </div>
+                              <div className="score-bar">
+                                <div 
+                                  className="score-fill"
+                                  style={{ 
+                                    width: `${score * 100}%`,
+                                    backgroundColor: index === 0 ? getConfidenceColor(score) : '#e9ecef'
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

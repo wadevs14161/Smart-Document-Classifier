@@ -122,6 +122,7 @@ async def upload_document(
                 if "error" not in classification_result:
                     db_document.predicted_category = classification_result["predicted_category"]
                     db_document.confidence_score = classification_result["confidence_score"]
+                    db_document.all_scores = classification_result.get("all_scores", {})
                     db_document.is_classified = True
                     db_document.classification_time = classification_start
                     db_document.inference_time = classification_result.get("inference_time", 0.0)
@@ -268,6 +269,7 @@ async def classify_document(document_id: int, db: Session = Depends(get_db)):
         # Update document with classification results and timing
         document.predicted_category = classification_result["predicted_category"]
         document.confidence_score = classification_result["confidence_score"]
+        document.all_scores = classification_result.get("all_scores", {})
         document.is_classified = True
         document.classification_time = classification_start
         document.inference_time = classification_result.get("inference_time", 0.0)

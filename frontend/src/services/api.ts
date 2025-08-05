@@ -20,6 +20,7 @@ export interface Document {
   content_text: string | null;
   predicted_category: string | null;
   confidence_score: number | null;
+  all_scores: Record<string, number> | null;
   is_classified: boolean;
   classification_time: string | null;
   inference_time: number | null;
