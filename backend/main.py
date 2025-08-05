@@ -1,15 +1,15 @@
 from fastapi import FastAPI, File, UploadFile, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List
+from contextlib import asynccontextmanager
 import uvicorn
 import os
 import uuid
 import aiofiles
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Import our modules
 from .database import get_db, create_tables, Document
@@ -17,11 +17,22 @@ from .schemas import DocumentResponse, DocumentListResponse, UploadResponse, Err
 from .document_processor import DocumentProcessor
 from .ml_classifier import classify_document_text, cleanup_ml_resources
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    create_tables()
+    yield
+    # Shutdown
+    print("🔄 Shutting down application...")
+    cleanup_ml_resources()
+    print("✅ Application shutdown complete")
+
 # Create FastAPI instance
 app = FastAPI(
     title="Smart Document Classifier API",
     description="A FastAPI application for document upload and classification",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Add CORS middleware for frontend integration
@@ -42,17 +53,6 @@ templates = Jinja2Templates(directory="templates")
 
 # Mount static files (for CSS, JS, images if needed)
 # app.mount("/static", StaticFiles(directory="static"), name="static")
-
-@app.on_event("startup")
-async def startup_event():
-    create_tables()
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Clean up resources on shutdown"""
-    print("🔄 Shutting down application...")
-    cleanup_ml_resources()
-    print("✅ Application shutdown complete")
 
 # Root endpoint - serve the HTML interface
 @app.get("/", response_class=HTMLResponse)
@@ -106,7 +106,7 @@ async def upload_document(
             file_size=file_size,
             content_text=extracted_text,
             file_type=file_type,
-            uploaded_at=datetime.utcnow()
+            uploaded_at=datetime.now(timezone.utc)
         )
         
         db.add(db_document)
@@ -117,7 +117,7 @@ async def upload_document(
         classification_result = None
         if extracted_text:
             try:
-                classification_start = datetime.utcnow()
+                classification_start = datetime.now(timezone.utc)
                 classification_result = classify_document_text(extracted_text)
                 if "error" not in classification_result:
                     db_document.predicted_category = classification_result["predicted_category"]
@@ -125,7 +125,7 @@ async def upload_document(
                     db_document.is_classified = True
                     db_document.classification_time = classification_start
                     db_document.inference_time = classification_result.get("inference_time", 0.0)
-                    db_document.updated_at = datetime.utcnow()
+                    db_document.updated_at = datetime.now(timezone.utc)
                     db.commit()
             except Exception as e:
                 # Don't fail upload if classification fails
@@ -271,7 +271,7 @@ async def classify_document(document_id: int, db: Session = Depends(get_db)):
         document.is_classified = True
         document.classification_time = classification_start
         document.inference_time = classification_result.get("inference_time", 0.0)
-        document.updated_at = datetime.utcnow()
+        document.updated_at = datetime.now(timezone.utc)
         
         db.commit()
         db.refresh(document)
@@ -290,10 +290,6 @@ async def classify_document(document_id: int, db: Session = Depends(get_db)):
             detail=f"Error classifying document: {str(e)}"
         )
 
-# Alternative interface endpoint (also uses templates)
-@app.get("/interface", response_class=HTMLResponse)
-async def document_interface(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
 
 if __name__ == "__main__":
     # Run the server

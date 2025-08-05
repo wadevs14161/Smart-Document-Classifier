@@ -1,6 +1,5 @@
-import os
 import aiofiles
-from typing import Optional, Tuple
+from typing import Optional
 import PyPDF2
 from docx import Document as DocxDocument
 from io import BytesIO
