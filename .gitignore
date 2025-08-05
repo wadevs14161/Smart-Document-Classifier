@@ -22,6 +22,24 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Node.js (Frontend)
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/build/
+frontend/.next/
+frontend/.nuxt/
+frontend/.vite/
+frontend/.cache/
+frontend/coverage/
+frontend/*.tgz
+frontend/*.tar.gz
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/lerna-debug.log*
+
 # Virtual environments
 .venv-compuj/
 venv/
