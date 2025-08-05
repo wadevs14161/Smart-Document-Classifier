@@ -1,6 +1,7 @@
 /* Upload Section */
 .upload-section {
-  margin-bottom: 2rem;
+  margin: 0 auto 2rem auto;
+  width: 100%;
 }
 
 .upload-card {
@@ -10,6 +11,8 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.2);
+  width: 100%;
+  margin: 0 auto;
 }
 
 .upload-card:hover {
