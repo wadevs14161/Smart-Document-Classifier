@@ -15,10 +15,10 @@ import logging
 import traceback
 
 # Import our modules
-from database import get_db, create_tables, Document
-from schemas import DocumentResponse, DocumentListResponse, UploadResponse, ErrorResponse
-from document_processor import DocumentProcessor, DocumentProcessingError
-from ml_classifier import classify_document_text, cleanup_ml_resources
+from .database import get_db, create_tables, Document
+from .schemas import DocumentResponse, DocumentListResponse, UploadResponse, ErrorResponse
+from .document_processor import DocumentProcessor, DocumentProcessingError
+from .ml_classifier import classify_document_text, cleanup_ml_resources
 
 # Configure logging
 logging.basicConfig(

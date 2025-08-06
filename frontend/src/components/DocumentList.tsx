@@ -230,146 +230,178 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
           <p>Upload your first document above to get started with AI classification!</p>
         </div>
       ) : (
-        <div className="documents-grid">
-          {documents.map((doc) => (
-            <div key={doc.id} className="document-card">
-              <div className="document-header">
-                <div className="document-title">
-                  <span className="file-emoji">{getFileTypeEmoji(doc.file_type)}</span>
-                  <h3>{doc.original_filename}</h3>
-                </div>
-                <span className={`file-type-badge ${doc.file_type.toLowerCase()}`}>
-                  {doc.file_type.toUpperCase()}
-                </span>
-              </div>
-
-              <div className="document-info">
-                <div className="info-row">
-                  <span className="info-label">Size:</span>
-                  <span>{formatFileSize(doc.file_size)}</span>
-                </div>
-                <div className="info-row">
-                  <span className="info-label">Uploaded:</span>
-                  <span>{formatDate(doc.uploaded_at)}</span>
-                </div>
-                
-                {doc.inference_time && (
-                  <div className="info-row">
-                    <span className="info-label">Processing Time:</span>
-                    <span>{doc.inference_time.toFixed(3)}s</span>
-                  </div>
-                )}
-                
-                {doc.is_classified && doc.predicted_category && (
-                  <div className="classification-info">
-                    <div className="info-row">
-                      <span className="info-label">Classification Results:</span>
-                      <span className="category-tag">{doc.predicted_category}</span>
-                    </div>
-                    
-                    {doc.confidence_score && (
-                      <div className="confidence-section">
-
-
-                      </div>
-                    )}
-
-                    {doc.all_scores && (
-                      <div className="all-scores-section">
-                        <div className="info-label">Confidence Scores:</div>
-                        <div className="scores-list">
-                          {getSortedClassificationScores(doc.all_scores).map(({ category, score }, index) => (
-                            <div key={category} className={`score-item ${index === 0 ? 'top-score' : ''}`}>
-                              <div className="score-header">
-                                <span className="score-category">{category}</span>
-                                <span className="score-percentage">{(score * 100).toFixed(1)}%</span>
-                              </div>
-                              <div className="score-bar">
-                                <div 
-                                  className="score-fill"
-                                  style={{ 
-                                    width: `${score * 100}%`,
-                                    backgroundColor: index === 0 ? getConfidenceColor(score) : '#e9ecef'
-                                  }}
-                                />
-                              </div>
+        <div className="documents-table-wrapper">
+          <table className="documents-table">
+            <thead>
+              <tr>
+                <th>Document</th>
+                <th>Type</th>
+                <th>Size</th>
+                <th>Upload Date</th>
+                <th>Classification</th>
+                <th>Confidence</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {documents.map((doc) => (
+                <React.Fragment key={doc.id}>
+                  <tr className="document-row">
+                    <td className="document-title-cell">
+                      <div className="document-title">
+                        <span className="file-emoji">{getFileTypeEmoji(doc.file_type)}</span>
+                        <div className="title-info">
+                          <h3>{doc.original_filename}</h3>
+                          {doc.inference_time && (
+                            <div className="processing-time">
+                              Processing: {doc.inference_time.toFixed(3)}s
                             </div>
-                          ))}
+                          )}
                         </div>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                    </td>
+                    
+                    <td className="file-type-cell">
+                      <span className={`file-type-badge ${doc.file_type.toLowerCase()}`}>
+                        {doc.file_type.toUpperCase()}
+                      </span>
+                    </td>
+                    
+                    <td className="size-cell">
+                      {formatFileSize(doc.file_size)}
+                    </td>
+                    
+                    <td className="date-cell">
+                      {formatDate(doc.uploaded_at)}
+                    </td>
+                    
+                    <td className="classification-cell">
+                      {doc.is_classified && doc.predicted_category ? (
+                        <span className="category-tag">{doc.predicted_category}</span>
+                      ) : (
+                        <span className="not-classified">Not classified</span>
+                      )}
+                    </td>
+                    
+                    <td className="confidence-cell">
+                      {doc.confidence_score ? (
+                        <div className="confidence-display">
+                          <span 
+                            className="confidence-value"
+                            style={{ color: getConfidenceColor(doc.confidence_score) }}
+                          >
+                            {(doc.confidence_score * 100).toFixed(1)}%
+                          </span>
+                          <div className="confidence-bar-mini">
+                            <div 
+                              className="confidence-fill-mini"
+                              style={{ 
+                                width: `${doc.confidence_score * 100}%`,
+                                backgroundColor: getConfidenceColor(doc.confidence_score)
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="no-confidence">-</span>
+                      )}
+                    </td>
+                    
+                    <td className="actions-cell">
+                      <div className="action-buttons">
+                        {!doc.is_classified ? (
+                          <button
+                            onClick={() => handleClassify(doc.id)}
+                            disabled={classifyingIds.has(doc.id)}
+                            className="classify-btn primary"
+                            title="Classify document"
+                          >
+                            {classifyingIds.has(doc.id) ? (
+                              <span className="spinner-small"></span>
+                            ) : (
+                              <span>🔍</span>
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleClassify(doc.id)}
+                            disabled={classifyingIds.has(doc.id)}
+                            className="classify-btn secondary"
+                            title="Re-classify document"
+                          >
+                            {classifyingIds.has(doc.id) ? (
+                              <span className="spinner-small"></span>
+                            ) : (
+                              <span>🔄</span>
+                            )}
+                          </button>
+                        )}
 
-              <div className="document-actions">
-                {!doc.is_classified ? (
-                  <button
-                    onClick={() => handleClassify(doc.id)}
-                    disabled={classifyingIds.has(doc.id)}
-                    className="classify-btn primary"
-                  >
-                    {classifyingIds.has(doc.id) ? (
-                      <>
-                        <span className="spinner-small"></span>
-                        Classifying...
-                      </>
-                    ) : (
-                      <>
-                        <span>🔍</span>
-                        Classify
-                      </>
-                    )}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleClassify(doc.id)}
-                    disabled={classifyingIds.has(doc.id)}
-                    className="classify-btn secondary"
-                  >
-                    {classifyingIds.has(doc.id) ? (
-                      <>
-                        <span className="spinner-small"></span>
-                        Re-classifying...
-                      </>
-                    ) : (
-                      <>
-                        <span>🔄</span>
-                        Re-classify
-                      </>
-                    )}
-                  </button>
-                )}
+                        {doc.content_text && (
+                          <button
+                            onClick={() => toggleContent(doc.id)}
+                            className="toggle-content-btn"
+                            title={expandedContent.has(doc.id) ? 'Hide content' : 'Show content'}
+                          >
+                            <span>{expandedContent.has(doc.id) ? '📖' : '👁️'}</span>
+                          </button>
+                        )}
 
-                {doc.content_text && (
-                  <button
-                    onClick={() => toggleContent(doc.id)}
-                    className="toggle-content-btn"
-                  >
-                    <span>{expandedContent.has(doc.id) ? '📖' : '👁️'}</span>
-                    {expandedContent.has(doc.id) ? 'Hide Content' : 'Show Content'}
-                  </button>
-                )}
-
-                <button
-                  onClick={() => handleDelete(doc.id, doc.original_filename)}
-                  className="delete-btn"
-                >
-                  <span>🗑️</span>
-                  Delete
-                </button>
-              </div>
-
-              {doc.content_text && expandedContent.has(doc.id) && (
-                <div className="document-content">
-                  <h4>Document Content:</h4>
-                  <div className="content-text">
-                    {doc.content_text}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+                        <button
+                          onClick={() => handleDelete(doc.id, doc.original_filename)}
+                          className="delete-btn"
+                          title="Delete document"
+                        >
+                          <span>🗑️</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  
+                  {/* Expandable row for detailed scores */}
+                  {doc.all_scores && expandedContent.has(doc.id) && (
+                    <tr className="details-row">
+                      <td colSpan={7}>
+                        <div className="detailed-info">
+                          <div className="scores-section">
+                            <h4>Classification Scores:</h4>
+                            <div className="scores-grid">
+                              {getSortedClassificationScores(doc.all_scores).map(({ category, score }, index) => (
+                                <div key={category} className={`score-item ${index === 0 ? 'top-score' : ''}`}>
+                                  <div className="score-header">
+                                    <span className="score-category">{category}</span>
+                                    <span className="score-percentage">{(score * 100).toFixed(1)}%</span>
+                                  </div>
+                                  <div className="score-bar">
+                                    <div 
+                                      className="score-fill"
+                                      style={{ 
+                                        width: `${score * 100}%`,
+                                        backgroundColor: index === 0 ? getConfidenceColor(score) : '#e9ecef'
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          {doc.content_text && (
+                            <div className="content-section">
+                              <h4>Document Content:</h4>
+                              <div className="content-text">
+                                {doc.content_text}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

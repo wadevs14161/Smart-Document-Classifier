@@ -13,18 +13,20 @@ class DocumentProcessingError(Exception):
     pass
 
 class DocumentProcessor:
-    """Handles document text extraction from various file formats"""
+    """Handles document text extraction from various file formats with enhanced support"""
     
     # Maximum file size (10MB)
     MAX_FILE_SIZE = 10 * 1024 * 1024
     
-    # Supported MIME types
+    # Supported MIME types and extensions
     SUPPORTED_MIME_TYPES = {
         'text/plain': 'txt',
         'application/pdf': 'pdf',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
         'application/msword': 'doc'
     }
+    
+    SUPPORTED_EXTENSIONS = ['txt', 'pdf', 'docx', 'doc']
     
     @staticmethod
     def validate_file_integrity(file_path: str, expected_type: str) -> Tuple[bool, str]:
@@ -102,7 +104,7 @@ class DocumentProcessor:
     
     @staticmethod
     async def _extract_from_pdf(file_path: str) -> str:
-        """Extract text from PDF files with enhanced error handling"""
+        """Extract text from PDF files with enhanced PyPDF2 handling"""
         try:
             async with aiofiles.open(file_path, 'rb') as file:
                 pdf_content = await file.read()
@@ -117,13 +119,19 @@ class DocumentProcessor:
             
             text_content = ""
             pages_processed = 0
+            total_pages = len(pdf_reader.pages)
+            
+            logger.info(f"Processing PDF with {total_pages} pages")
             
             for page_num, page in enumerate(pdf_reader.pages):
                 try:
                     page_text = page.extract_text()
-                    if page_text:
+                    if page_text and page_text.strip():
                         text_content += page_text + "\n"
                         pages_processed += 1
+                        logger.debug(f"Extracted text from PDF page {page_num + 1}")
+                    else:
+                        logger.warning(f"No text extracted from PDF page {page_num + 1}")
                 except Exception as e:
                     logger.warning(f"Failed to extract text from PDF page {page_num + 1}: {str(e)}")
                     continue
@@ -131,22 +139,30 @@ class DocumentProcessor:
             if not text_content.strip():
                 raise DocumentProcessingError("No readable text found in PDF - document may be image-based or corrupted")
             
-            logger.info(f"Successfully extracted text from {pages_processed}/{len(pdf_reader.pages)} PDF pages")
-            return text_content.strip()
+            # Clean up extracted text
+            text_content = text_content.strip()
+            # Remove excessive whitespace
+            text_content = ' '.join(text_content.split())
+            
+            logger.info(f"Successfully extracted text from {pages_processed}/{total_pages} PDF pages ({len(text_content)} characters)")
+            return text_content
             
         except DocumentProcessingError:
             raise
         except Exception as e:
-            if "incorrect startxref" in str(e).lower() or "corrupted" in str(e).lower():
+            error_message = str(e).lower()
+            if "incorrect startxref" in error_message or "corrupted" in error_message:
                 raise DocumentProcessingError("PDF file appears to be corrupted")
-            elif "encrypted" in str(e).lower():
+            elif "encrypted" in error_message or "password" in error_message:
                 raise DocumentProcessingError("PDF file is encrypted and cannot be processed")
+            elif "not a pdf" in error_message:
+                raise DocumentProcessingError("File is not a valid PDF format")
             else:
                 raise DocumentProcessingError(f"PDF processing error: {str(e)}")
     
     @staticmethod
     async def _extract_from_docx(file_path: str) -> str:
-        """Extract text from DOCX files with enhanced error handling"""
+        """Extract text from DOCX files with enhanced handling for tables and formatting"""
         try:
             async with aiofiles.open(file_path, 'rb') as file:
                 docx_content = await file.read()
@@ -158,30 +174,53 @@ class DocumentProcessor:
             
             text_content = ""
             paragraphs_processed = 0
+            tables_processed = 0
             
+            # Extract text from paragraphs
+            logger.debug("Extracting text from paragraphs")
             for paragraph in doc.paragraphs:
-                if paragraph.text.strip():
-                    text_content += paragraph.text + "\n"
+                para_text = paragraph.text.strip()
+                if para_text:
+                    text_content += para_text + "\n"
                     paragraphs_processed += 1
             
-            # Also extract text from tables
+            # Extract text from tables
+            logger.debug("Extracting text from tables")
             for table in doc.tables:
+                table_text = ""
                 for row in table.rows:
+                    row_text = []
                     for cell in row.cells:
-                        if cell.text.strip():
-                            text_content += cell.text + "\n"
+                        cell_text = cell.text.strip()
+                        if cell_text:
+                            row_text.append(cell_text)
+                    if row_text:
+                        table_text += " | ".join(row_text) + "\n"
+                
+                if table_text:
+                    text_content += "\n" + table_text + "\n"
+                    tables_processed += 1
             
             if not text_content.strip():
                 raise DocumentProcessingError("No readable text found in DOCX document")
             
-            logger.info(f"Successfully extracted text from DOCX document ({paragraphs_processed} paragraphs)")
-            return text_content.strip()
+            # Clean up extracted text
+            text_content = text_content.strip()
+            # Normalize whitespace while preserving line breaks
+            lines = [' '.join(line.split()) for line in text_content.split('\n')]
+            text_content = '\n'.join(line for line in lines if line.strip())
+            
+            logger.info(f"Successfully extracted text from DOCX document ({paragraphs_processed} paragraphs, {tables_processed} tables, {len(text_content)} characters)")
+            return text_content
             
         except DocumentProcessingError:
             raise
         except Exception as e:
-            if "not a zip file" in str(e).lower() or "bad zip" in str(e).lower():
+            error_message = str(e).lower()
+            if "not a zip file" in error_message or "bad zip" in error_message:
                 raise DocumentProcessingError("DOCX file appears to be corrupted or not a valid DOCX format")
+            elif "no such file" in error_message:
+                raise DocumentProcessingError("Invalid DOCX file structure")
             else:
                 raise DocumentProcessingError(f"DOCX processing error: {str(e)}")
     
@@ -207,3 +246,114 @@ class DocumentProcessor:
             return content
         
         return content[:max_length] + "..."
+
+    @staticmethod 
+    def read_file_content(filepath: str) -> str:
+        """
+        Synchronous method to read file content based on extension.
+        This matches the function from your notebook for compatibility.
+        
+        Args:
+            filepath: Path to the file
+            
+        Returns:
+            Extracted text content
+            
+        Raises:
+            DocumentProcessingError: If file processing fails
+        """
+        try:
+            filename, file_extension = os.path.splitext(filepath)
+            file_extension = file_extension.lower()
+
+            if file_extension == '.txt':
+                return DocumentProcessor._read_txt_sync(filepath)
+            elif file_extension == '.docx':
+                return DocumentProcessor._read_docx_sync(filepath)
+            elif file_extension == '.pdf':
+                return DocumentProcessor._read_pdf_sync(filepath)
+            elif file_extension == '.doc':
+                raise DocumentProcessingError("Reading .doc files requires additional dependencies")
+            else:
+                raise DocumentProcessingError(f"Unsupported file type: {file_extension}")
+                
+        except DocumentProcessingError:
+            raise
+        except Exception as e:
+            raise DocumentProcessingError(f"Error reading file {filepath}: {str(e)}")
+    
+    @staticmethod
+    def _read_txt_sync(filepath: str) -> str:
+        """Synchronous text file reader with encoding detection"""
+        encodings = ['utf-8', 'utf-16', 'latin-1', 'cp1252', 'iso-8859-1']
+        
+        for encoding in encodings:
+            try:
+                with open(filepath, 'r', encoding=encoding, errors='ignore') as f:
+                    content = f.read()
+                    if content.strip():
+                        return content
+            except (UnicodeDecodeError, OSError):
+                continue
+        
+        raise DocumentProcessingError("Unable to read text file - unsupported encoding or corrupted file")
+    
+    @staticmethod
+    def _read_docx_sync(filepath: str) -> str:
+        """Synchronous DOCX file reader"""
+        try:
+            doc = DocxDocument(filepath)
+            content = ""
+            
+            # Extract paragraphs
+            for paragraph in doc.paragraphs:
+                if paragraph.text.strip():
+                    content += paragraph.text + "\n"
+            
+            # Extract tables
+            for table in doc.tables:
+                for row in table.rows:
+                    row_text = []
+                    for cell in row.cells:
+                        if cell.text.strip():
+                            row_text.append(cell.text.strip())
+                    if row_text:
+                        content += " | ".join(row_text) + "\n"
+            
+            if not content.strip():
+                raise DocumentProcessingError("No readable text found in DOCX")
+                
+            return content.strip()
+            
+        except Exception as e:
+            raise DocumentProcessingError(f"Error reading DOCX file: {str(e)}")
+    
+    @staticmethod
+    def _read_pdf_sync(filepath: str) -> str:
+        """Synchronous PDF file reader using PyPDF2"""
+        try:
+            with open(filepath, 'rb') as file:
+                pdf_reader = PyPDF2.PdfReader(file)
+                
+                if len(pdf_reader.pages) == 0:
+                    raise DocumentProcessingError("PDF has no pages")
+                
+                content = ""
+                for page in pdf_reader.pages:
+                    try:
+                        page_text = page.extract_text()
+                        if page_text:
+                            content += page_text + "\n"
+                    except Exception as e:
+                        logger.warning(f"Failed to extract text from PDF page: {str(e)}")
+                        continue
+                
+                if not content.strip():
+                    raise DocumentProcessingError("No readable text found in PDF")
+                    
+                return content.strip()
+                
+        except DocumentProcessingError:
+            raise
+        except Exception as e:
+            raise DocumentProcessingError(f"Error reading PDF file: {str(e)}")
