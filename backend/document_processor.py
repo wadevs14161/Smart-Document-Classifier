@@ -15,8 +15,8 @@ class DocumentProcessingError(Exception):
 class DocumentProcessor:
     """Handles document text extraction from various file formats with enhanced support"""
     
-    # Maximum file size (10MB)
-    MAX_FILE_SIZE = 10 * 1024 * 1024
+    # Maximum file size (25MB)
+    MAX_FILE_SIZE = 25 * 1024 * 1024
     
     # Supported MIME types and extensions
     SUPPORTED_MIME_TYPES = {
