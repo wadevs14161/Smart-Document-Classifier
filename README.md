@@ -4,25 +4,18 @@ A full-stack web application for document upload, text extraction, and AI-powere
 
 ## 🚀 Key Features
 
-- **Multi-Model AI Classification**: Choose between BART-Large-MNLI (407M parameters) and mDeBERTa-v3-Base (279M parameters) for zero-shot document classification
-- **Bulk Upload Processing**: Upload up to 10 files simultaneously with concurrent processing
-- **Statistics Dashboard**: Comprehensive analytics with charts showing document distribution, confidence scores, and upload trends
-- **Document Support**: TXT, PDF, and DOCX files up to 25MB each
-- **Deep Learning Powered**: PyTorch-based transformer neural networks for intelligent document understanding
-- **Modern UI**: React TypeScript frontend with responsive design and drag-and-drop interface
-- **RESTful API**: FastAPI backend with comprehensive error handling
+- **Zero-Shot Document Classification**: Classify documents instantly without any custom training. The application leverages powerful pretrained models to categorize documents into predefined categories.
+- **Multiple Model Support**: Choose from two robust transformer-based models:
+    - **BART-Large-MNLI** (407M parameters): Ideal for fast and accurate English document classification.
+    - **mDeBERTa-v3-Base-MNLI-XNLI** (279M parameters): A multilingual model capable of classifying documents in over 100 languages.
+- **Statistics Dashboard**: An intuitive dashboard to visualize and analyze classification outcomes and performance metrics.
 
-## 🤖 AI Classification
+## 📄 Document Categories
 
-The application uses **deep learning-powered zero-shot classification** with transformer neural networks:
+The application is pre-configured to classify documents into the following categories:
 
-### Available Models:
-1. **BART-Large-MNLI**: 407M parameter transformer for fast English document classification
-2. **mDeBERTa-v3-Base**: 279M parameter multilingual model supporting 100+ languages
-
-### Document Categories:
 - Technical Documentation
-- Business Proposal  
+- Business Proposal
 - Academic Paper
 - Legal Document
 - General Article
@@ -66,13 +59,6 @@ npm run dev
 - **Frontend**: http://localhost:3000
 - **API Documentation**: http://localhost:8000/docs
 
-## 📊 Application Interface
-
-The application features three main tabs:
-
-1. **Single Upload**: Individual document upload with real-time classification
-2. **Bulk Upload**: Process up to 10 files simultaneously
-3. **Statistics**: Analytics dashboard with document insights and trends
 
 ## 🔮 Future Enhancements
 
