@@ -20,6 +20,9 @@ class DocumentResponse(DocumentBase):
     is_classified: bool = False
     classification_time: Optional[datetime] = None
     inference_time: Optional[float] = None
+    model_used: Optional[str] = None  # NEW: Model display name
+    model_key: Optional[str] = None  # NEW: Model key
+    model_id: Optional[str] = None   # NEW: Model ID
     uploaded_at: datetime
     updated_at: datetime
     
@@ -38,6 +41,9 @@ class DocumentListResponse(BaseModel):
     is_classified: bool = False
     classification_time: Optional[datetime] = None
     inference_time: Optional[float] = None
+    model_used: Optional[str] = None  # NEW: Model display name
+    model_key: Optional[str] = None  # NEW: Model key
+    model_id: Optional[str] = None   # NEW: Model ID
     uploaded_at: datetime
     updated_at: datetime
     file_type: str
@@ -57,3 +63,15 @@ class UploadResponse(BaseModel):
 class ErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None
+
+class ModelInfo(BaseModel):
+    key: str
+    name: str
+    model_id: str
+    description: str
+
+class AvailableModelsResponse(BaseModel):
+    models: Dict[str, ModelInfo]
+
+class ClassificationRequest(BaseModel):
+    model_key: Optional[str] = "bart-large-mnli"

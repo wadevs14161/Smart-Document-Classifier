@@ -33,8 +33,11 @@ class Document(Base):
     confidence_score = Column(Float, nullable=True)
     all_scores = Column(JSON, nullable=True)  # Store all classification scores
     is_classified = Column(Boolean, default=False)
-    classification_time = Column(DateTime, nullable=True)  # NEW: Store classification time
-    inference_time = Column(Float, nullable=True)  # NEW: Store inference duration in seconds
+    classification_time = Column(DateTime, nullable=True)  # Store classification time
+    inference_time = Column(Float, nullable=True)  # Store inference duration in seconds
+    model_used = Column(String, nullable=True)  # NEW: Store model display name
+    model_key = Column(String, nullable=True)  # NEW: Store model key (bart-large-mnli, mdeberta-v3-base)
+    model_id = Column(String, nullable=True)  # NEW: Store full model identifier (huggingface model id)
     
     # Timestamps
     uploaded_at = Column(DateTime, default=datetime.utcnow, nullable=False)

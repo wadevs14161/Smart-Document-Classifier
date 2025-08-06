@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { documentAPI } from '../services/api';
-import type { UploadResponse } from '../services/api';
+import type { UploadResponse, AvailableModelsResponse, ModelInfo } from '../services/api';
 import './DocumentUpload.css';
 
 interface DocumentUploadProps {
@@ -12,6 +12,20 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onUploadSuccess }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string>('');
   const [dragActive, setDragActive] = useState(false);
+  const [availableModels, setAvailableModels] = useState<Record<string, ModelInfo>>({});
+  const [selectedModel, setSelectedModel] = useState<string>('bart-large-mnli');
+  const [autoClassify, setAutoClassify] = useState<boolean>(true);
+
+  // Load available models on component mount
+  useEffect(() => {
+    documentAPI.getModels()
+      .then(response => {
+        setAvailableModels(response.models);
+      })
+      .catch(error => {
+        console.error('Failed to load models:', error);
+      });
+  }, []);
 
   // Supported file types
   const supportedTypes = ['text/plain', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'];
@@ -81,7 +95,11 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onUploadSuccess }) => {
     setUploadStatus('Uploading and classifying...');
 
     try {
-      const result = await documentAPI.uploadDocument(selectedFile);
+      const result = await documentAPI.uploadDocument(
+        selectedFile, 
+        autoClassify ? selectedModel : 'bart-large-mnli',
+        autoClassify
+      );
       
       // Handle warnings if present
       if (result.warnings && result.warnings.length > 0) {
@@ -89,12 +107,19 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onUploadSuccess }) => {
         console.warn('Upload warnings:', warningMessages);
       }
       
-      const category = result.classification?.predicted_category || 'Pending classification';
+      const category = result.classification?.predicted_category || (autoClassify ? 'Classification pending' : 'Not classified');
       const topConfidence = result.classification?.confidence_score 
         ? (result.classification.confidence_score * 100).toFixed(1) + '%'
         : 'N/A';
       
-      let statusMessage = `✅ Upload successful! Classified as: ${category} (${topConfidence})`;
+      let statusMessage;
+      if (autoClassify && result.classification?.predicted_category) {
+        statusMessage = `✅ Upload successful! Classified as: ${category} (${topConfidence})`;
+      } else if (autoClassify) {
+        statusMessage = `✅ Upload successful! Classification pending.`;
+      } else {
+        statusMessage = `✅ Upload successful! Ready for manual classification.`;
+      }
       
       // Add warning indicator if there were issues
       if (result.warnings && result.warnings.length > 0) {
@@ -165,7 +190,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onUploadSuccess }) => {
       <div className="upload-card">
         <h2>📄 Upload Document</h2>
         <p className="upload-description">
-          Upload documents for AI-powered classification using BART-Large-MNLI
+          Upload documents with optional AI-powered classification using BART or mDeBERTa models
         </p>
         
         <div 
@@ -209,6 +234,38 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onUploadSuccess }) => {
           </div>
         )}
 
+        {/* Classification Options */}
+        <div className="classification-options">
+          <div className="option-group">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={autoClassify}
+                onChange={(e) => setAutoClassify(e.target.checked)}
+              />
+              Auto-classify document upon upload
+            </label>
+          </div>
+          
+          {autoClassify && (
+            <div className="option-group">
+              <label htmlFor="model-select">Classification Model:</label>
+              <select
+                id="model-select"
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="model-select"
+              >
+                {Object.entries(availableModels).map(([key, model]) => (
+                  <option key={key} value={key}>
+                    {model.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
         <button
           onClick={handleUpload}
           disabled={!selectedFile || isUploading}
@@ -222,7 +279,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onUploadSuccess }) => {
           ) : (
             <>
               <span className="upload-btn-icon">🚀</span>
-              Upload & Classify
+              {autoClassify ? 'Upload & Classify' : 'Upload Only'}
             </>
           )}
         </button>

@@ -24,6 +24,9 @@ export interface Document {
   is_classified: boolean;
   classification_time: string | null;
   inference_time: number | null;
+  model_used: string | null;  // NEW
+  model_key: string | null;   // NEW
+  model_id: string | null;    // NEW
   uploaded_at: string;
   updated_at: string | null;
 }
@@ -46,18 +49,30 @@ export interface UploadResponse {
 export interface ClassificationResult {
   message: string;
   document_id: number;
+  model_used: string;  // NEW
   classification_result: {
     predicted_category: string;
     confidence_score: number;
     all_scores: Record<string, number>;
     inference_time: number;
     model_used: string;
-    text_length_chars: number;
-    text_length_tokens: number;
-    was_truncated: boolean;
-    original_token_count: number;
-    chunks_used?: number;
+    model_key: string;
+    model_id: string;
+    token_count: number;
+    chunks_processed: number;
+    was_chunked: boolean;
   };
+}
+
+export interface ModelInfo {
+  key: string;
+  name: string;
+  model_id: string;
+  description: string;
+}
+
+export interface AvailableModelsResponse {
+  models: Record<string, ModelInfo>;
 }
 
 export interface DocumentListResponse {
@@ -73,9 +88,11 @@ export const documentAPI = {
   },
 
   // Upload document
-  uploadDocument: async (file: File): Promise<UploadResponse> => {
+  uploadDocument: async (file: File, modelKey: string = 'bart-large-mnli', autoClassify: boolean = true): Promise<UploadResponse> => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('model_key', modelKey);
+    formData.append('auto_classify', autoClassify.toString());
     
     const response = await api.post('/upload', formData, {
       headers: {
@@ -86,8 +103,16 @@ export const documentAPI = {
   },
 
   // Classify document
-  classifyDocument: async (documentId: number): Promise<ClassificationResult> => {
-    const response = await api.post(`/documents/${documentId}/classify`);
+  classifyDocument: async (documentId: number, modelKey: string = 'bart-large-mnli'): Promise<ClassificationResult> => {
+    const response = await api.post(`/documents/${documentId}/classify`, {
+      model_key: modelKey
+    });
+    return response.data;
+  },
+
+  // Get available models
+  getModels: async (): Promise<AvailableModelsResponse> => {
+    const response = await api.get('/models');
     return response.data;
   },
 

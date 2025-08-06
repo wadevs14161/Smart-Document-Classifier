@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { documentAPI } from '../services/api';
-import type { Document, ClassificationResult } from '../services/api';
+import type { Document, ClassificationResult, AvailableModelsResponse, ModelInfo } from '../services/api';
 import './DocumentList.css';
 
 interface DocumentListProps {
@@ -13,6 +13,8 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
   const [classifyingIds, setClassifyingIds] = useState<Set<number>>(new Set());
   const [expandedContent, setExpandedContent] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string>('');
+  const [availableModels, setAvailableModels] = useState<Record<string, ModelInfo>>({});
+  const [selectedModel, setSelectedModel] = useState<string>('bart-large-mnli');
 
   const fetchDocuments = async () => {
     try {
@@ -41,15 +43,40 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
     }
   };
 
+  const fetchModels = async () => {
+    try {
+      const response = await documentAPI.getModels();
+      setAvailableModels(response.models);
+    } catch (error: any) {
+      console.error('Failed to fetch models:', error);
+      // Set default models if API fails
+      setAvailableModels({
+        'bart-large-mnli': {
+          key: 'bart-large-mnli',
+          name: 'BART Large MNLI',
+          model_id: 'facebook/bart-large-mnli',
+          description: 'Facebook\'s BART model fine-tuned for MNLI'
+        },
+        'mdeberta-v3-base': {
+          key: 'mdeberta-v3-base',
+          name: 'mDeBERTa v3 Base',
+          model_id: 'MoritzLaurer/mDeBERTa-v3-base-mnli-xnli',
+          description: 'Multilingual DeBERTa model for cross-lingual classification'
+        }
+      });
+    }
+  };
+
   useEffect(() => {
     fetchDocuments();
+    fetchModels();
   }, [refreshTrigger]);
 
   const handleClassify = async (documentId: number) => {
     setClassifyingIds(prev => new Set(prev).add(documentId));
     
     try {
-      const result: ClassificationResult = await documentAPI.classifyDocument(documentId);
+      const result: ClassificationResult = await documentAPI.classifyDocument(documentId, selectedModel);
       
       // Update the document in the list
       setDocuments(prev => prev.map(doc => 
@@ -60,13 +87,16 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
               confidence_score: result.classification_result.confidence_score,
               all_scores: result.classification_result.all_scores,
               inference_time: result.classification_result.inference_time,
+              model_used: result.classification_result.model_used,
+              model_key: result.classification_result.model_key,
+              model_id: result.classification_result.model_id,
               is_classified: true,
               classification_time: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             }
           : doc
       ));
-      console.log(`Successfully classified document ${documentId}`);
+      console.log(`Successfully classified document ${documentId} using ${result.model_used}`);
     } catch (error: any) {
       console.error('Classification failed:', error);
       
@@ -207,6 +237,23 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
           <span className="stat">
             <strong>{documents.filter(d => d.is_classified).length}</strong> classified
           </span>
+          
+          <div className="model-selector">
+            <label htmlFor="model-select">Classification Model:</label>
+            <select
+              id="model-select"
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="model-select-dropdown"
+            >
+              {Object.entries(availableModels).map(([key, model]) => (
+                <option key={key} value={key}>
+                  {model.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
           <button 
             onClick={fetchDocuments} 
             className="refresh-btn"
@@ -240,6 +287,7 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
                 <th>Upload Date</th>
                 <th>Classification</th>
                 <th>Confidence</th>
+                <th>Model Used</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -252,11 +300,6 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
                         <span className="file-emoji">{getFileTypeEmoji(doc.file_type)}</span>
                         <div className="title-info">
                           <h3>{doc.original_filename}</h3>
-                          {doc.inference_time && (
-                            <div className="processing-time">
-                              Processing: {doc.inference_time.toFixed(3)}s
-                            </div>
-                          )}
                         </div>
                       </div>
                     </td>
@@ -304,6 +347,21 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
                         </div>
                       ) : (
                         <span className="no-confidence">-</span>
+                      )}
+                    </td>
+                    
+                    <td className="model-cell">
+                      {doc.model_used ? (
+                        <div className="model-info">
+                          <span className="model-name">{doc.model_used}</span>
+                          {doc.inference_time && (
+                            <div className="inference-time">
+                              {doc.inference_time.toFixed(2)}s
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="no-model">-</span>
                       )}
                     </td>
                     
@@ -361,7 +419,7 @@ const DocumentList: React.FC<DocumentListProps> = ({ refreshTrigger }) => {
                   {/* Expandable row for detailed scores */}
                   {doc.all_scores && expandedContent.has(doc.id) && (
                     <tr className="details-row">
-                      <td colSpan={7}>
+                      <td colSpan={8}>
                         <div className="detailed-info">
                           <div className="scores-section">
                             <h4>Classification Scores:</h4>

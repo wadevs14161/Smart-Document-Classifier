@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, Depends, HTTPException, Request
+from fastapi import FastAPI, File, UploadFile, Form, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
@@ -16,9 +16,9 @@ import traceback
 
 # Import our modules
 from .database import get_db, create_tables, Document
-from .schemas import DocumentResponse, DocumentListResponse, UploadResponse, ErrorResponse
+from .schemas import DocumentResponse, DocumentListResponse, UploadResponse, ErrorResponse, AvailableModelsResponse, ModelInfo, ClassificationRequest
 from .document_processor import DocumentProcessor, DocumentProcessingError
-from .ml_classifier import classify_document_text, cleanup_ml_resources
+from .ml_classifier import classify_document_text, cleanup_ml_resources, get_available_models
 
 # Configure logging
 logging.basicConfig(
@@ -98,10 +98,37 @@ async def read_root(request: Request):
 async def health_check():
     return {"status": "healthy", "message": "Document Classifier API is running successfully"}
 
+# Get available models
+@app.get("/models", response_model=AvailableModelsResponse)
+async def get_models():
+    """
+    Get list of available classification models
+    """
+    try:
+        models_data = get_available_models()
+        models = {
+            key: ModelInfo(
+                key=key,
+                name=info["name"],
+                model_id=info["model_id"],
+                description=info["description"]
+            )
+            for key, info in models_data.items()
+        }
+        return AvailableModelsResponse(models=models)
+    except Exception as e:
+        logger.error(f"Error retrieving models: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve available models"
+        )
+
 # Document Upload Endpoint
 @app.post("/upload", response_model=UploadResponse)
 async def upload_document(
     file: UploadFile = File(...),
+    model_key: str = Form("bart-large-mnli"),
+    auto_classify: bool = Form(True),
     db: Session = Depends(get_db)
 ):
     """
@@ -212,21 +239,25 @@ async def upload_document(
                 detail="Failed to save document information. Please try again."
             )
         
-        # Perform automatic classification if text is available
+        # Perform automatic classification if text is available and auto_classify is enabled
         classification_result = None
         classification_error = None
         
-        if extracted_text and extracted_text.strip():
+        if auto_classify and extracted_text and extracted_text.strip():
             try:
-                logger.info(f"Starting classification for document {db_document.id}")
+                logger.info(f"Starting classification for document {db_document.id} using model: {model_key}")
                 classification_start = datetime.now(timezone.utc)
-                classification_result = classify_document_text(extracted_text)
+                # Use provided model for auto-classification
+                classification_result = classify_document_text(extracted_text, model_key=model_key)
                 
                 if classification_result and "error" not in classification_result:
                     try:
                         db_document.predicted_category = classification_result["predicted_category"]
                         db_document.confidence_score = classification_result["confidence_score"]
                         db_document.all_scores = classification_result.get("all_scores", {})
+                        db_document.model_used = classification_result.get("model_used")
+                        db_document.model_key = classification_result.get("model_key")
+                        db_document.model_id = classification_result.get("model_id")
                         db_document.is_classified = True
                         db_document.classification_time = classification_start
                         db_document.inference_time = classification_result.get("inference_time", 0.0)
@@ -243,6 +274,9 @@ async def upload_document(
             except Exception as e:
                 classification_error = f"Classification error: {str(e)}"
                 logger.error(f"Classification exception for document {db_document.id}: {str(e)}")
+        elif not auto_classify:
+            classification_error = None  # No error when auto-classification is disabled
+            logger.info(f"Auto-classification disabled for document {db_document.id}")
         else:
             classification_error = "No text content available for classification"
         
@@ -409,9 +443,13 @@ async def delete_document(document_id: int, db: Session = Depends(get_db)):
 
 # Classify document using ML model
 @app.post("/documents/{document_id}/classify")
-async def classify_document(document_id: int, db: Session = Depends(get_db)):
+async def classify_document(
+    document_id: int, 
+    request: ClassificationRequest = ClassificationRequest(),
+    db: Session = Depends(get_db)
+):
     """
-    Classify a document using BART-Large-MNLI model
+    Classify a document using selected ML model
     """
     try:
         document = db.query(Document).filter(Document.id == document_id).first()
@@ -424,9 +462,12 @@ async def classify_document(document_id: int, db: Session = Depends(get_db)):
                 detail="Document has no text content to classify"
             )
         
-        # Perform ML classification
+        # Perform ML classification with selected model
         classification_start = datetime.utcnow()
-        classification_result = classify_document_text(document.content_text)
+        classification_result = classify_document_text(
+            document.content_text, 
+            model_key=request.model_key
+        )
         
         if "error" in classification_result:
             raise HTTPException(
@@ -438,6 +479,9 @@ async def classify_document(document_id: int, db: Session = Depends(get_db)):
         document.predicted_category = classification_result["predicted_category"]
         document.confidence_score = classification_result["confidence_score"]
         document.all_scores = classification_result.get("all_scores", {})
+        document.model_used = classification_result.get("model_used")
+        document.model_key = classification_result.get("model_key")
+        document.model_id = classification_result.get("model_id")
         document.is_classified = True
         document.classification_time = classification_start
         document.inference_time = classification_result.get("inference_time", 0.0)
@@ -449,6 +493,7 @@ async def classify_document(document_id: int, db: Session = Depends(get_db)):
         return {
             "message": "Document classified successfully",
             "document_id": document_id,
+            "model_used": classification_result.get("model_used"),
             "classification_result": classification_result
         }
         
