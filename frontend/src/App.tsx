@@ -2,15 +2,22 @@ import { useState } from 'react';
 import DocumentUpload from './components/DocumentUpload';
 import DocumentList from './components/DocumentList';
 import StatisticsDashboard from './components/StatisticsDashboard';
-import type { UploadResponse } from './services/api';
+import BulkUpload from './components/BulkUpload';
+import type { UploadResponse, BulkUploadFileResult } from './services/api';
 import './App.css';
 
 function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [activeTab, setActiveTab] = useState<'upload' | 'statistics'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'bulk-upload' | 'statistics'>('upload');
 
   const handleUploadSuccess = (result: UploadResponse) => {
     console.log('Upload successful:', result);
+    // Trigger document list refresh
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleBulkUploadSuccess = (results: BulkUploadFileResult[]) => {
+    console.log('Bulk upload completed:', results);
     // Trigger document list refresh
     setRefreshTrigger(prev => prev + 1);
   };
@@ -28,7 +35,13 @@ function App() {
               className={`nav-tab ${activeTab === 'upload' ? 'active' : ''}`}
               onClick={() => setActiveTab('upload')}
             >
-              📄 Documents
+              📄 Single Upload
+            </button>
+            <button 
+              className={`nav-tab ${activeTab === 'bulk-upload' ? 'active' : ''}`}
+              onClick={() => setActiveTab('bulk-upload')}
+            >
+              📦 Bulk Upload
             </button>
             <button 
               className={`nav-tab ${activeTab === 'statistics' ? 'active' : ''}`}
@@ -45,6 +58,11 @@ function App() {
           {activeTab === 'upload' ? (
             <>
               <DocumentUpload onUploadSuccess={handleUploadSuccess} />
+              <DocumentList refreshTrigger={refreshTrigger} />
+            </>
+          ) : activeTab === 'bulk-upload' ? (
+            <>
+              <BulkUpload onUploadSuccess={handleBulkUploadSuccess} />
               <DocumentList refreshTrigger={refreshTrigger} />
             </>
           ) : (

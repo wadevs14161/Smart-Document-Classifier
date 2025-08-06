@@ -60,6 +60,24 @@ class UploadResponse(BaseModel):
     warnings: Optional[List[str]] = None
     classification: Optional[dict] = None  # For auto-classification results
 
+class BulkUploadFileResult(BaseModel):
+    filename: str
+    status: str  # 'success', 'error', 'warning'
+    document_id: Optional[int] = None
+    file_size: Optional[int] = None
+    content_preview: Optional[str] = None
+    warnings: Optional[List[str]] = None
+    classification: Optional[dict] = None
+    error: Optional[str] = None
+
+class BulkUploadResponse(BaseModel):
+    message: str
+    total_files: int
+    successful_uploads: int
+    failed_uploads: int
+    results: List[BulkUploadFileResult]
+    processing_time: float
+
 class ErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None

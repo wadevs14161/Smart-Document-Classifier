@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from typing import List
+from typing import List, Dict, Any
 from contextlib import asynccontextmanager
 import uvicorn
 import os
@@ -13,10 +13,11 @@ import aiofiles
 from datetime import datetime, timezone
 import logging
 import traceback
+import asyncio
 
 # Import our modules
 from .database import get_db, create_tables, Document
-from .schemas import DocumentResponse, DocumentListResponse, UploadResponse, ErrorResponse, AvailableModelsResponse, ModelInfo, ClassificationRequest
+from .schemas import DocumentResponse, DocumentListResponse, UploadResponse, BulkUploadResponse, BulkUploadFileResult, ErrorResponse, AvailableModelsResponse, ModelInfo, ClassificationRequest
 from .document_processor import DocumentProcessor, DocumentProcessingError
 from .ml_classifier import classify_document_text, cleanup_ml_resources, get_available_models
 
@@ -331,6 +332,251 @@ async def upload_document(
                 "message": "An unexpected error occurred during file upload. Please try again.",
                 "details": str(e) if os.getenv("DEBUG") else None
             }
+        )
+
+# Bulk Document Upload Endpoint
+@app.post("/bulk-upload", response_model=BulkUploadResponse)
+async def bulk_upload_documents(
+    files: List[UploadFile] = File(...),
+    model_key: str = Form("bart-large-mnli"),
+    auto_classify: bool = Form(True),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload multiple documents for classification.
+    Supports: TXT, PDF, DOCX files
+    Max: 10 files at once
+    """
+    start_time = datetime.now()
+    
+    # Validate number of files
+    if not files or len(files) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="No files provided"
+        )
+    
+    if len(files) > 10:
+        raise HTTPException(
+            status_code=400,
+            detail="Maximum 10 files allowed per bulk upload"
+        )
+    
+    # Process files concurrently with limited concurrency
+    semaphore = asyncio.Semaphore(3)  # Process max 3 files simultaneously
+    
+    async def process_single_file(file: UploadFile) -> BulkUploadFileResult:
+        async with semaphore:
+            return await process_uploaded_file(file, model_key, auto_classify, db)
+    
+    # Create tasks for all files
+    tasks = [process_single_file(file) for file in files]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    # Process results and handle exceptions
+    processed_results = []
+    successful_uploads = 0
+    failed_uploads = 0
+    
+    for i, result in enumerate(results):
+        if isinstance(result, Exception):
+            # Handle exceptions
+            error_result = BulkUploadFileResult(
+                filename=files[i].filename or f"file_{i+1}",
+                status="error",
+                error=str(result)
+            )
+            processed_results.append(error_result)
+            failed_uploads += 1
+        else:
+            processed_results.append(result)
+            if result.status == "success":
+                successful_uploads += 1
+            else:
+                failed_uploads += 1
+    
+    processing_time = (datetime.now() - start_time).total_seconds()
+    
+    return BulkUploadResponse(
+        message=f"Processed {len(files)} files: {successful_uploads} successful, {failed_uploads} failed",
+        total_files=len(files),
+        successful_uploads=successful_uploads,
+        failed_uploads=failed_uploads,
+        results=processed_results,
+        processing_time=processing_time
+    )
+
+
+async def process_uploaded_file(
+    file: UploadFile, 
+    model_key: str, 
+    auto_classify: bool, 
+    db: Session
+) -> BulkUploadFileResult:
+    """
+    Process a single uploaded file for bulk upload.
+    Returns BulkUploadFileResult with success/error status.
+    """
+    file_path = None
+    try:
+        # Validate file exists and has content
+        if not file or not file.filename:
+            return BulkUploadFileResult(
+                filename=file.filename if file else "unknown",
+                status="error",
+                error="No file provided or filename is empty"
+            )
+        
+        # Check file size (max 25MB)
+        content = await file.read()
+        file_size = len(content)
+        max_size = 25 * 1024 * 1024  # 25MB
+        if file_size > max_size:
+            return BulkUploadFileResult(
+                filename=file.filename,
+                status="error",
+                error=f"File too large. Maximum size allowed: {max_size // (1024*1024)}MB"
+            )
+        
+        if file_size == 0:
+            return BulkUploadFileResult(
+                filename=file.filename,
+                status="error",
+                error="File is empty"
+            )
+        
+        # Validate file type
+        file_type = DocumentProcessor.get_file_type(file.filename)
+        if not DocumentProcessor.is_supported_file_type(file_type):
+            return BulkUploadFileResult(
+                filename=file.filename,
+                status="error",
+                error=f"File type '{file_type}' is not supported. Please upload TXT, PDF, or DOCX files."
+            )
+        
+        # Generate unique filename
+        file_id = str(uuid.uuid4())
+        safe_filename = f"{file_id}.{file_type}"
+        file_path = os.path.join(UPLOAD_DIR, safe_filename)
+        
+        # Ensure upload directory exists
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        
+        # Save file to disk
+        try:
+            async with aiofiles.open(file_path, 'wb') as f:
+                await f.write(content)
+        except Exception as e:
+            return BulkUploadFileResult(
+                filename=file.filename,
+                status="error",
+                error="Failed to save uploaded file"
+            )
+        
+        # Extract text content
+        try:
+            extracted_text = await DocumentProcessor.extract_text_from_file(file_path, file_type)
+            warnings = []
+            if not extracted_text or extracted_text.strip() == "":
+                warnings.append("No readable text content found in the document")
+                extracted_text = None
+                
+        except DocumentProcessingError as e:
+            return BulkUploadFileResult(
+                filename=file.filename,
+                status="error",
+                error=f"Failed to extract text: {str(e)}"
+            )
+        
+        # Create document record in database
+        try:
+            document = Document(
+                filename=safe_filename,
+                original_filename=file.filename,
+                file_path=file_path,
+                file_size=file_size,
+                file_type=file_type,
+                content_text=extracted_text,
+                uploaded_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc)
+            )
+            
+            db.add(document)
+            db.commit()
+            db.refresh(document)
+            
+        except SQLAlchemyError as e:
+            # Clean up file
+            if file_path and os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except:
+                    pass
+            return BulkUploadFileResult(
+                filename=file.filename,
+                status="error",
+                error="Failed to save document to database"
+            )
+        
+        # Auto-classify if requested and text is available
+        classification_result = None
+        if auto_classify and extracted_text and extracted_text.strip():
+            try:
+                prediction_result = classify_document_text(extracted_text, model_key)
+                
+                # Update document with classification
+                document.predicted_category = prediction_result['predicted_category']
+                document.confidence_score = prediction_result['confidence_score']
+                document.all_scores = prediction_result['all_scores']
+                document.is_classified = True
+                document.classification_time = datetime.now(timezone.utc)
+                document.inference_time = prediction_result.get('inference_time')
+                document.model_used = prediction_result.get('model_name')
+                document.model_key = model_key
+                document.model_id = prediction_result.get('model_id')
+                document.updated_at = datetime.now(timezone.utc)
+                
+                db.commit()
+                db.refresh(document)
+                
+                classification_result = {
+                    'predicted_category': prediction_result['predicted_category'],
+                    'confidence_score': prediction_result['confidence_score'],
+                    'inference_time': prediction_result.get('inference_time'),
+                    'model_used': prediction_result.get('model_name')
+                }
+                
+            except Exception as e:
+                warnings = warnings or []
+                warnings.append(f"Classification failed: {str(e)}")
+        
+        # Prepare content preview
+        content_preview = None
+        if extracted_text:
+            content_preview = extracted_text[:200] + "..." if len(extracted_text) > 200 else extracted_text
+        
+        return BulkUploadFileResult(
+            filename=file.filename,
+            status="success",
+            document_id=document.id,
+            file_size=file_size,
+            content_preview=content_preview,
+            warnings=warnings if warnings else None,
+            classification=classification_result
+        )
+        
+    except Exception as e:
+        # Clean up file if something goes wrong
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except:
+                pass
+        
+        return BulkUploadFileResult(
+            filename=file.filename if file else "unknown",
+            status="error",
+            error=str(e)
         )
 
 # Get all documents

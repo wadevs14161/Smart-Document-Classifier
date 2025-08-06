@@ -46,6 +46,31 @@ export interface UploadResponse {
   };
 }
 
+export interface BulkUploadFileResult {
+  filename: string;
+  status: 'success' | 'error' | 'warning';
+  document_id?: number;
+  file_size?: number;
+  content_preview?: string;
+  warnings?: string[];
+  classification?: {
+    predicted_category: string;
+    confidence_score: number;
+    inference_time?: number;
+    model_used?: string;
+  };
+  error?: string;
+}
+
+export interface BulkUploadResponse {
+  message: string;
+  total_files: number;
+  successful_uploads: number;
+  failed_uploads: number;
+  results: BulkUploadFileResult[];
+  processing_time: number;
+}
+
 export interface ClassificationResult {
   message: string;
   document_id: number;
@@ -95,6 +120,26 @@ export const documentAPI = {
     formData.append('auto_classify', autoClassify.toString());
     
     const response = await api.post('/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Bulk upload documents
+  bulkUploadDocuments: async (files: File[], modelKey: string = 'bart-large-mnli', autoClassify: boolean = true): Promise<BulkUploadResponse> => {
+    const formData = new FormData();
+    
+    // Append all files
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
+    
+    formData.append('model_key', modelKey);
+    formData.append('auto_classify', autoClassify.toString());
+    
+    const response = await api.post('/bulk-upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
