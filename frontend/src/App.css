@@ -58,8 +58,44 @@ body {
   font-size: 1.1rem;
   color: #7f8c8d;
   max-width: 600px;
-  margin: 0 auto;
+  margin: 0 auto 2rem auto;
   font-weight: 400;
+}
+
+/* Navigation Tabs */
+.app-nav {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.nav-tab {
+  background: transparent;
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  color: #667eea;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-tab:hover {
+  background: rgba(102, 126, 234, 0.1);
+  border-color: rgba(102, 126, 234, 0.5);
+  transform: translateY(-1px);
+}
+
+.nav-tab.active {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
 /* Main Content */
@@ -121,6 +157,17 @@ body {
   .main-content {
     gap: 1.5rem;
   }
+  
+  .app-nav {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .nav-tab {
+    width: 200px;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 480px) {
@@ -140,6 +187,12 @@ body {
   .main-content,
   .app-footer p {
     padding: 0 0.5rem;
+  }
+  
+  .nav-tab {
+    width: 180px;
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
   }
 }
 
