@@ -1,12 +1,37 @@
 # Smart Document Classifier Web Application
 
-A full-stack web application for document upload, text extraction, and AI-powered classification using BART-Large-MNLI model.
+A full-stack web application for document upload, text extraction, and AI-powered classification using multiple state-of-the-art language models with bulk processing capabilities.
 
 ## 🚀 Features
 
 ### ✅ Currently Implemented
-- **Document Upload**: Support for TXT, PDF, and DOCX files with drag-and-drop interface
-- **AI Classification**: Real-time document classification using BART-Large-MNLI model
+- **Multi-Model AI Support**:### Total processing time**: Optimized for under 10 seconds for typical batches
+
+## 📊 Analytics Dashboard
+
+The application includes a comprehensive **Statistics Dashboard** providing insights into document processing:
+
+### Dashboard Features:
+- **Document Distribution**: Visual breakdown of document types (PDF, TXT, DOCX)
+- **Classification Confidence Analysis**: Distribution of high/medium/low confidence scores
+- **Model Usage Statistics**: Comparison of BART vs mDeBERTa model usage
+- **Upload Trends**: Activity tracking (today, this week, this month)
+- **Recent Activity**: Latest documents with classification details
+- **Interactive Charts**: Responsive visualizations with progress bars and color coding
+- **Real-time Data**: Live updates based on current database content
+
+### Analytics Insights:
+- Track which document types are most commonly uploaded
+- Monitor classification model performance and confidence patterns
+- Analyze upload activity trends over time
+- Identify popular AI model preferences
+- Review recent classification results
+
+## 🛡️ Error Handlingoose between BART-Large-MNLI and mDeBERTa-v3-Base models
+- **Document Upload**: Support for TXT, PDF, and DOCX files with drag-and-drop interface (up to 25MB)
+- **Bulk Upload Processing**: Upload up to 10 files simultaneously with concurrent processing
+- **AI Classification**: Real-time document classification with confidence scoring
+- **Statistics Dashboard**: Comprehensive analytics with charts and metrics
 - **Text Extraction**: Automatic text extraction from uploaded documents
 - **Full Classification Results**: View all category confidence scores ranked from highest to lowest
 - **Modern React Frontend**: TypeScript-based React application with Vite build system
@@ -19,8 +44,9 @@ A full-stack web application for document upload, text extraction, and AI-powere
 ### 🔄 Future Enhancements
 - **User Authentication**: User management and document ownership
 - **Advanced Search**: Full-text search capabilities
-- **Batch Processing**: Multiple document upload and classification
 - **Export Functionality**: Export classification results
+- **Enhanced Celery Integration**: For high-volume bulk processing (1000+ documents)
+- **WebSocket Support**: Real-time upload progress for large batches
 
 ## 🛠️ Tech Stack
 
@@ -41,6 +67,7 @@ A full-stack web application for document upload, text extraction, and AI-powere
 **AI/ML:**
 - Transformers (Hugging Face)
 - BART-Large-MNLI (Zero-shot classification model)
+- mDeBERTa-v3-Base-MNLI-XNLI (Multilingual classification model)
 - PyTorch (Deep learning framework)
 
 ## 📁 Project Structure
@@ -60,9 +87,11 @@ compu-J/
 ├── frontend/               # React TypeScript application
 │   ├── src/
 │   │   ├── components/     # React components
-│   │   │   ├── DocumentList.tsx    # Document display component
-│   │   │   ├── DocumentUpload.tsx  # Upload interface
-│   │   │   └── *.css              # Component styling
+│   │   │   ├── DocumentList.tsx     # Document display component
+│   │   │   ├── DocumentUpload.tsx   # Single file upload interface
+│   │   │   ├── BulkUpload.tsx       # Bulk file upload interface
+│   │   │   ├── StatisticsDashboard.tsx # Analytics dashboard
+│   │   │   └── *.css               # Component styling
 │   │   ├── services/       # API integration
 │   │   │   └── api.ts      # API client and types
 │   │   ├── App.tsx         # Main application component
@@ -139,6 +168,9 @@ npm run dev
 
 ### 4. Access the Application
 - **Frontend Application**: http://localhost:3000
+  - **Single Upload Tab**: Individual document upload with real-time classification
+  - **Bulk Upload Tab**: Upload up to 10 files simultaneously
+  - **Statistics Tab**: Analytics dashboard with document insights
 - **Backend API Documentation**: http://localhost:8000/docs
 - **Alternative API Docs**: http://localhost:8000/redoc  
 - **Health Check**: http://localhost:8000/health
@@ -146,11 +178,15 @@ npm run dev
 ## 📊 API Endpoints
 
 ### Document Management
-- `POST /upload` - Upload and optionally auto-classify a document
+- `POST /upload` - Upload and optionally auto-classify a single document
+- `POST /bulk-upload` - Upload and process multiple documents (max 10 files)
 - `GET /documents` - Get list of all documents with classification results
 - `GET /documents/{id}` - Get specific document details
 - `DELETE /documents/{id}` - Delete a document
-- `POST /documents/{id}/classify` - Classify document using BART-Large-MNLI
+- `POST /documents/{id}/classify` - Classify document using selected model
+
+### Model Management
+- `GET /models` - Get available AI models (BART, mDeBERTa)
 
 ### System
 - `GET /` - API information
@@ -158,8 +194,20 @@ npm run dev
 
 ## 🤖 AI Classification
 
-The application uses **BART-Large-MNLI** (facebook/bart-large-mnli) for zero-shot document classification with the following categories:
+The application supports **multiple AI models** for document classification:
 
+### Available Models:
+1. **BART-Large-MNLI** (facebook/bart-large-mnli)
+   - Fast inference and reliable classification
+   - Optimized for English documents
+   - Good general-purpose performance
+
+2. **mDeBERTa-v3-Base** (MoritzLaurer/mDeBERTa-v3-base-mnli-xnli)  
+   - Multilingual support (cross-lingual classification)
+   - Higher accuracy on complex documents
+   - Supports multiple languages
+
+### Document Categories:
 - **Technical Documentation**: Manuals, guides, API docs
 - **Business Proposal**: Business plans, proposals, pitches  
 - **Academic Paper**: Research papers, studies, theses
@@ -168,18 +216,40 @@ The application uses **BART-Large-MNLI** (facebook/bart-large-mnli) for zero-sho
 - **Other**: Documents that don't fit other categories
 
 ### Classification Features:
+- **Model Selection**: Choose between available AI models
 - **Confidence Scores**: Shows confidence percentage for all categories
 - **Ranking Display**: Categories ranked from highest to lowest confidence
-- **Processing Time**: Tracks inference duration
+- **Processing Time**: Tracks inference duration for performance analysis
 - **Automatic Classification**: Option to classify during upload
-- **Re-classification**: Ability to re-classify existing documents
+- **Re-classification**: Ability to re-classify existing documents with different models
+- **Bulk Processing**: Concurrent classification of multiple documents
 
 ## 🧪 Testing
 
+### Bulk Upload Testing
+Test the new bulk upload functionality:
+```bash
+# Create test files
+mkdir test_bulk_files
+echo "AI and machine learning content..." > test_bulk_files/test1.txt
+echo "Financial market analysis..." > test_bulk_files/test2.txt
+echo "Sports championship report..." > test_bulk_files/test3.txt
+
+# Test bulk upload API
+curl -X POST http://localhost:8000/bulk-upload \
+  -F "files=@test_bulk_files/test1.txt" \
+  -F "files=@test_bulk_files/test2.txt" \
+  -F "files=@test_bulk_files/test3.txt" \
+  -F "model_key=bart-large-mnli" \
+  -F "auto_classify=true"
+```
+
 ### Frontend Testing
 The React application includes:
-- Real-time file upload with drag-and-drop
+- Real-time file upload with drag-and-drop (single and bulk)
 - Live classification results display
+- Statistics dashboard with interactive charts
+- Model selection interface
 - Responsive design testing across devices
 - TypeScript type safety
 
@@ -197,18 +267,40 @@ python test_upload.py
 
 ## 📝 API Usage Examples
 
-### Upload and Auto-Classify a Document
+### Upload and Auto-Classify a Single Document
 ```bash
 curl -X POST "http://localhost:8000/upload" \
      -H "accept: application/json" \
      -H "Content-Type: multipart/form-data" \
-     -F "file=@sample_document.txt"
+     -F "file=@sample_document.txt" \
+     -F "model_key=bart-large-mnli" \
+     -F "auto_classify=true"
+```
+
+### Bulk Upload Multiple Documents
+```bash
+curl -X POST "http://localhost:8000/bulk-upload" \
+     -H "accept: application/json" \
+     -H "Content-Type: multipart/form-data" \
+     -F "files=@doc1.txt" \
+     -F "files=@doc2.pdf" \
+     -F "files=@doc3.docx" \
+     -F "model_key=mdeberta-v3-base" \
+     -F "auto_classify=true"
+```
+
+### Get Available Models
+```bash
+curl -X GET "http://localhost:8000/models" \
+     -H "accept: application/json"
 ```
 
 ### Classify an Existing Document
 ```bash
 curl -X POST "http://localhost:8000/documents/1/classify" \
-     -H "accept: application/json"
+     -H "accept: application/json" \
+     -H "Content-Type: application/json" \
+     -d '{"model_key": "mdeberta-v3-base"}'
 ```
 
 ### Get All Documents with Classifications
@@ -219,68 +311,109 @@ curl -X GET "http://localhost:8000/documents" \
 
 ## 📋 Supported File Types
 
-- **TXT**: Plain text files
-- **PDF**: Portable Document Format  
-- **DOCX**: Microsoft Word documents
+- **TXT**: Plain text files (up to 25MB)
+- **PDF**: Portable Document Format (up to 25MB)
+- **DOCX**: Microsoft Word documents (up to 25MB)
+
+### Bulk Upload Limits:
+- **Maximum files per batch**: 10 files
+- **Concurrent processing**: Up to 3 files simultaneously
+- **File size limit**: 25MB per file
+- **Total processing time**: Optimized for under 10 seconds for typical batches
 
 ## 🛡️ Error Handling
 
-The application implements comprehensive error handling across all layers:
+The application implements **comprehensive error handling** across all layers for robust operation:
 
-- **Frontend Validation**: Multi-layered file type checking and user-friendly error messages
-- **Backend Processing**: Robust error handling for file corruption, encoding issues, and processing failures
-- **API Layer**: Structured error responses with appropriate HTTP status codes
-- **Database Operations**: Transaction rollback and resource cleanup on failures
+### **Frontend (React/TypeScript)**
+- **Multi-layer validation**: HTML accept attributes + JavaScript validation + API safety checks
+- **Real-time feedback**: Immediate error messages with visual indicators (✅ ❌ ⚠️)
+- **User-friendly messages**: Clear, actionable error descriptions for all scenarios
+- **Network resilience**: Proper handling of connection issues, timeouts, and server errors
+- **File validation**: Client-side size and type checking before upload
+- **Bulk upload errors**: Per-file error reporting without stopping other uploads
 
-For detailed error handling documentation, see [`docs/ERROR_HANDLING.md`](docs/ERROR_HANDLING.md).
+### **Backend (FastAPI/Python)**
+- **Structured error responses**: Consistent JSON error format with appropriate HTTP codes
+- **File processing resilience**: Handles corrupted files, encoding issues, extraction failures
+- **Database safety**: Transaction rollback and automatic file cleanup on failures
+- **ML model errors**: Graceful fallback when classification fails
+- **Resource management**: Proper cleanup of temporary files and database connections
+- **Concurrent processing**: Individual file error handling in bulk operations
 
-### Error Testing
-```bash
-# Run comprehensive error handling tests
-cd /path/to/compu-J
-python test/test_error_handling.py
-```
+### **Error Categories**
+- **400 Bad Request**: Invalid file types, missing data, malformed requests
+- **413 Payload Too Large**: Files exceeding 25MB limit
+- **422 Unprocessable Entity**: Unsupported file formats, processing failures
+- **500 Internal Server Error**: Database issues, ML model failures, unexpected errors
+
+### **Recovery Features**
+- **Retry mechanisms**: User-initiated retry for failed operations
+- **Partial success handling**: Bulk uploads continue despite individual file failures
+- **Warning system**: Non-fatal issues displayed alongside successful operations
+- **Automatic cleanup**: Failed uploads don't leave orphaned files or database entries
 
 ## 🔮 Future Enhancements
 
 1. **Advanced AI Features**
    - Custom model training with user data
-   - Multi-language support
+   - Multi-language support (building on mDeBERTa multilingual capabilities)
    - Document similarity search
    - Automated tagging and metadata extraction
+   - Confidence threshold settings for auto-classification
 
 2. **Enhanced User Experience**
    - Dark/light theme toggle
-   - Advanced filtering and sorting
+   - Advanced filtering and sorting in document list
    - Document preview functionality
-   - Batch operations
+   - Batch operations (delete, re-classify multiple documents)
+   - Export functionality (CSV, JSON, PDF reports)
 
-3. **Enterprise Features**
+3. **Bulk Processing Enhancements**
+   - **Celery Integration**: For processing 1000+ documents
+   - **WebSocket Support**: Real-time progress updates for large batches  
+   - **Queue Management**: Priority-based document processing
+   - **Resume Capability**: Continue interrupted bulk uploads
+
+4. **Enterprise Features**
    - User authentication and authorization
    - Role-based access control
    - API rate limiting and quotas
-   - Audit logging
+   - Audit logging and activity tracking
+   - Multi-tenant support
 
-4. **Deployment & Scaling**
+5. **Deployment & Scaling**
    - Docker containerization
-   - Kubernetes deployment
-   - Cloud storage integration (AWS S3, etc.)
+   - Kubernetes deployment configurations
+   - Cloud storage integration (AWS S3, Google Cloud)
    - Horizontal scaling with Redis caching
+   - Load balancing for concurrent processing
 
-5. **Data Management**
-   - Database migrations
-   - Backup and restore functionality
+6. **Data Management**
+   - Database migrations and versioning
+   - Automated backup and restore functionality
    - Data export/import features
-   - Performance monitoring
+   - Performance monitoring and metrics
+   - Database optimization for large datasets
 
 ## 🤝 Contributing
 
-This project demonstrates a complete full-stack implementation with modern technologies:
+This project demonstrates a complete full-stack implementation with modern technologies and advanced features:
 
+### Recent Updates (August 2025):
+- ✅ **Multi-Model AI Support**: Added mDeBERTa-v3-Base alongside BART-Large-MNLI
+- ✅ **Bulk Upload Processing**: Concurrent processing of up to 10 files
+- ✅ **Statistics Dashboard**: Comprehensive analytics with interactive charts
+- ✅ **Enhanced Database Schema**: Model tracking and metadata support
+- ✅ **Responsive UI**: Mobile-optimized design with navigation tabs
+- ✅ **Improved Error Handling**: Per-file error reporting in bulk uploads
+
+### Technology Stack:
 - **Frontend**: React 18 + TypeScript + Vite
-- **Backend**: FastAPI + SQLAlchemy
-- **AI/ML**: Transformers + BART-Large-MNLI
+- **Backend**: FastAPI + SQLAlchemy + AsyncIO
+- **AI/ML**: Transformers + Multi-Model Support (BART + mDeBERTa)
 - **Database**: SQLite with potential for PostgreSQL migration
+- **Processing**: Concurrent async processing with semaphore control
 
 ## 📄 License
 
