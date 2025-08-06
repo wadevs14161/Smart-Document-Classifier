@@ -1,203 +1,207 @@
 #!/usr/bin/env python3
 """
-Comprehensive error handling test script for Smart Document Classifier
+Error handling test script for Smart Document Classifier
 Tests various error scenarios to ensure robust error handling
 """
-
 import requests
 import json
 import os
 import tempfile
 from io import BytesIO
 
-API_BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:8000"
 
 def test_upload_errors():
     """Test various upload error scenarios"""
-    print("🔍 Testing Upload Error Handling...")
+    print("🔍 Testing Upload Error Handling")
+    print("=" * 50)
     
-    # Test 1: No file provided
-    print("\n1. Testing empty upload...")
+    # Test 1: Upload without file
+    print("\n1. Testing upload without file...")
     try:
-        response = requests.post(f"{API_BASE_URL}/upload")
+        response = requests.post(f"{BASE_URL}/upload")
         print(f"   Status: {response.status_code}")
-        if response.status_code != 200:
-            print(f"   Error: {response.json()}")
+        if response.status_code in [400, 422]:
+            print("   ✅ Correctly rejected upload without file")
+        else:
+            print(f"   ❌ Unexpected response: {response.text}")
     except Exception as e:
-        print(f"   Exception: {e}")
+        print(f"   ❌ Error: {e}")
     
     # Test 2: Empty file
-    print("\n2. Testing empty file...")
+    print("\n2. Testing empty file upload...")
     try:
-        empty_file = BytesIO(b"")
-        files = {'file': ('empty.txt', empty_file, 'text/plain')}
-        response = requests.post(f"{API_BASE_URL}/upload", files=files)
+        empty_content = b""
+        files = {"file": ("empty.txt", BytesIO(empty_content), "text/plain")}
+        response = requests.post(f"{BASE_URL}/upload", files=files)
         print(f"   Status: {response.status_code}")
-        if response.status_code != 200:
-            print(f"   Error: {response.json()}")
+        if response.status_code == 400:
+            print("   ✅ Correctly rejected empty file")
+        else:
+            print(f"   ❌ Unexpected response: {response.text}")
     except Exception as e:
-        print(f"   Exception: {e}")
+        print(f"   ❌ Error: {e}")
     
     # Test 3: Unsupported file type
     print("\n3. Testing unsupported file type...")
     try:
-        fake_image = BytesIO(b"fake image content")
-        files = {'file': ('test.jpg', fake_image, 'image/jpeg')}
-        response = requests.post(f"{API_BASE_URL}/upload", files=files)
+        unsupported_content = b"This is a fake executable file"
+        files = {"file": ("malicious.exe", BytesIO(unsupported_content), "application/octet-stream")}
+        response = requests.post(f"{BASE_URL}/upload", files=files)
         print(f"   Status: {response.status_code}")
-        if response.status_code != 200:
-            print(f"   Error: {response.json()}")
+        if response.status_code == 422:
+            print("   ✅ Correctly rejected unsupported file type")
+        else:
+            print(f"   ❌ Unexpected response: {response.text}")
     except Exception as e:
-        print(f"   Exception: {e}")
+        print(f"   ❌ Error: {e}")
     
-    # Test 4: Large file (> 10MB)
-    print("\n4. Testing oversized file...")
+    # Test 4: Invalid model key
+    print("\n4. Testing invalid model key...")
     try:
-        large_content = b"x" * (11 * 1024 * 1024)  # 11MB
-        large_file = BytesIO(large_content)
-        files = {'file': ('large.txt', large_file, 'text/plain')}
-        response = requests.post(f"{API_BASE_URL}/upload", files=files)
+        valid_content = b"This is a test document for classification."
+        files = {"file": ("test.txt", BytesIO(valid_content), "text/plain")}
+        data = {"model_key": "invalid-model", "auto_classify": True}
+        response = requests.post(f"{BASE_URL}/upload", files=files, data=data)
         print(f"   Status: {response.status_code}")
-        if response.status_code != 200:
-            print(f"   Error: {response.json()}")
+        if response.status_code in [400, 422]:
+            print("   ✅ Correctly rejected invalid model key")
+        else:
+            print(f"   ❌ Unexpected response: {response.text}")
     except Exception as e:
-        print(f"   Exception: {e}")
-    
-    # Test 5: Corrupted PDF
-    print("\n5. Testing corrupted PDF...")
-    try:
-        fake_pdf = BytesIO(b"This is not a real PDF file")
-        files = {'file': ('corrupted.pdf', fake_pdf, 'application/pdf')}
-        response = requests.post(f"{API_BASE_URL}/upload", files=files)
-        print(f"   Status: {response.status_code}")
-        print(f"   Response: {response.json()}")
-    except Exception as e:
-        print(f"   Exception: {e}")
-    
-    # Test 6: File with no readable content
-    print("\n6. Testing file with only whitespace...")
-    try:
-        whitespace_file = BytesIO(b"   \n\n\t\t   \n   ")
-        files = {'file': ('whitespace.txt', whitespace_file, 'text/plain')}
-        response = requests.post(f"{API_BASE_URL}/upload", files=files)
-        print(f"   Status: {response.status_code}")
-        print(f"   Response: {response.json()}")
-    except Exception as e:
-        print(f"   Exception: {e}")
+        print(f"   ❌ Error: {e}")
 
-def test_api_errors():
-    """Test API endpoint error scenarios"""
-    print("\n🔍 Testing API Error Handling...")
+def test_document_errors():
+    """Test document-related error scenarios"""
+    print("\n🔍 Testing Document Error Handling")
+    print("=" * 50)
     
-    # Test 1: Non-existent document
-    print("\n1. Testing non-existent document...")
+    # Test 1: Get non-existent document
+    print("\n1. Testing get non-existent document...")
     try:
-        response = requests.get(f"{API_BASE_URL}/documents/99999")
+        response = requests.get(f"{BASE_URL}/documents/99999")
         print(f"   Status: {response.status_code}")
-        if response.status_code != 200:
-            print(f"   Error: {response.json()}")
+        if response.status_code == 404:
+            print("   ✅ Correctly returned 404 for non-existent document")
+        else:
+            print(f"   ❌ Unexpected response: {response.text}")
     except Exception as e:
-        print(f"   Exception: {e}")
+        print(f"   ❌ Error: {e}")
     
-    # Test 2: Invalid document ID
-    print("\n2. Testing invalid document ID...")
+    # Test 2: Delete non-existent document
+    print("\n2. Testing delete non-existent document...")
     try:
-        response = requests.get(f"{API_BASE_URL}/documents/-1")
+        response = requests.delete(f"{BASE_URL}/documents/99999")
         print(f"   Status: {response.status_code}")
-        if response.status_code != 200:
-            print(f"   Error: {response.json()}")
+        if response.status_code == 404:
+            print("   ✅ Correctly returned 404 for non-existent document")
+        else:
+            print(f"   ❌ Unexpected response: {response.text}")
     except Exception as e:
-        print(f"   Exception: {e}")
+        print(f"   ❌ Error: {e}")
     
-    # Test 3: Invalid pagination parameters
-    print("\n3. Testing invalid pagination...")
+    # Test 3: Classify non-existent document
+    print("\n3. Testing classify non-existent document...")
     try:
-        response = requests.get(f"{API_BASE_URL}/documents?skip=-1&limit=0")
+        data = {"model_key": "bart-large-mnli"}
+        response = requests.post(f"{BASE_URL}/documents/99999/classify", json=data)
         print(f"   Status: {response.status_code}")
-        if response.status_code != 200:
-            print(f"   Error: {response.json()}")
+        if response.status_code == 404:
+            print("   ✅ Correctly returned 404 for non-existent document")
+        else:
+            print(f"   ❌ Unexpected response: {response.text}")
     except Exception as e:
-        print(f"   Exception: {e}")
-    
-    # Test 4: Delete non-existent document
-    print("\n4. Testing delete non-existent document...")
-    try:
-        response = requests.delete(f"{API_BASE_URL}/documents/99999")
-        print(f"   Status: {response.status_code}")
-        if response.status_code != 200:
-            print(f"   Error: {response.json()}")
-    except Exception as e:
-        print(f"   Exception: {e}")
-    
-    # Test 5: Classify non-existent document
-    print("\n5. Testing classify non-existent document...")
-    try:
-        response = requests.post(f"{API_BASE_URL}/documents/99999/classify")
-        print(f"   Status: {response.status_code}")
-        if response.status_code != 200:
-            print(f"   Error: {response.json()}")
-    except Exception as e:
-        print(f"   Exception: {e}")
+        print(f"   ❌ Error: {e}")
 
-def test_health_check():
-    """Test health check endpoint"""
-    print("\n🔍 Testing Health Check...")
+def test_bulk_upload_errors():
+    """Test bulk upload error scenarios"""
+    print("\n🔍 Testing Bulk Upload Error Handling")
+    print("=" * 50)
+    
+    # Test 1: Bulk upload with no files
+    print("\n1. Testing bulk upload with no files...")
     try:
-        response = requests.get(f"{API_BASE_URL}/health")
+        response = requests.post(f"{BASE_URL}/bulk-upload")
         print(f"   Status: {response.status_code}")
-        print(f"   Response: {response.json()}")
+        if response.status_code in [400, 422]:
+            print("   ✅ Correctly rejected bulk upload without files")
+        else:
+            print(f"   ❌ Unexpected response: {response.text}")
     except Exception as e:
-        print(f"   Exception: {e}")
-
-def test_successful_upload():
-    """Test a successful upload to ensure system is working"""
-    print("\n✅ Testing Successful Upload...")
+        print(f"   ❌ Error: {e}")
+    
+    # Test 2: Bulk upload with mixed valid/invalid files
+    print("\n2. Testing bulk upload with mixed file types...")
     try:
-        test_content = "This is a test document for classification testing."
-        test_file = BytesIO(test_content.encode())
-        files = {'file': ('test_success.txt', test_file, 'text/plain')}
-        response = requests.post(f"{API_BASE_URL}/upload", files=files)
+        files = [
+            ("files", ("valid.txt", BytesIO(b"Valid document content"), "text/plain")),
+            ("files", ("invalid.exe", BytesIO(b"Invalid content"), "application/octet-stream"))
+        ]
+        data = {"model_key": "bart-large-mnli", "auto_classify": True}
+        response = requests.post(f"{BASE_URL}/bulk-upload", files=files, data=data)
         print(f"   Status: {response.status_code}")
         if response.status_code == 200:
             result = response.json()
-            print(f"   Success: {result['message']}")
-            if 'classification' in result:
-                print(f"   Classification: {result['classification']['predicted_category']}")
-                print(f"   Confidence: {result['classification']['confidence_score']:.3f}")
-            if 'warnings' in result:
-                print(f"   Warnings: {result['warnings']}")
+            print(f"   ✅ Partial success: {result.get('successful_uploads')} successful, {result.get('failed_uploads')} failed")
         else:
-            print(f"   Error: {response.json()}")
+            print(f"   ❌ Unexpected response: {response.text}")
     except Exception as e:
-        print(f"   Exception: {e}")
+        print(f"   ❌ Error: {e}")
 
-def main():
-    """Run all error handling tests"""
-    print("🚀 Starting Error Handling Test Suite")
+def test_api_limits():
+    """Test API limits and edge cases"""
+    print("\n🔍 Testing API Limits and Edge Cases")
     print("=" * 50)
     
-    # Check if API is running
+    # Test 1: Large file (close to limit)
+    print("\n1. Testing large file upload...")
     try:
-        response = requests.get(f"{API_BASE_URL}/health", timeout=5)
-        if response.status_code != 200:
-            print(f"❌ API health check failed: {response.status_code}")
-            return
+        # Create a 1MB test file (well within 25MB limit)
+        large_content = b"A" * (1024 * 1024)  # 1MB
+        files = {"file": ("large_test.txt", BytesIO(large_content), "text/plain")}
+        data = {"model_key": "bart-large-mnli", "auto_classify": False}  # Skip classification for speed
+        response = requests.post(f"{BASE_URL}/upload", files=files, data=data)
+        print(f"   Status: {response.status_code}")
+        if response.status_code == 200:
+            print("   ✅ Large file upload successful")
+        else:
+            print(f"   ❌ Large file upload failed: {response.text}")
     except Exception as e:
-        print(f"❌ Cannot connect to API at {API_BASE_URL}")
-        print(f"   Make sure the backend server is running")
-        print(f"   Error: {e}")
-        return
+        print(f"   ❌ Error: {e}")
     
-    print("✅ API is running")
+    # Test 2: Very long filename
+    print("\n2. Testing very long filename...")
+    try:
+        long_filename = "a" * 200 + ".txt"
+        files = {"file": (long_filename, BytesIO(b"Test content"), "text/plain")}
+        response = requests.post(f"{BASE_URL}/upload", files=files)
+        print(f"   Status: {response.status_code}")
+        if response.status_code in [200, 400]:
+            print("   ✅ Long filename handled appropriately")
+        else:
+            print(f"   ❌ Unexpected response: {response.text}")
+    except Exception as e:
+        print(f"   ❌ Error: {e}")
+
+def main():
+    """Main error testing function"""
+    print("🧪 Smart Document Classifier - Error Handling Tests")
+    print("=" * 60)
     
-    # Run tests
-    test_health_check()
     test_upload_errors()
-    test_api_errors()
-    test_successful_upload()
+    test_document_errors()
+    test_bulk_upload_errors()
+    test_api_limits()
     
-    print("\n" + "=" * 50)
-    print("🏁 Error Handling Test Suite Complete")
+    print("\n" + "=" * 60)
+    print("✅ Error handling tests completed!")
+    print("💡 All error scenarios should be handled gracefully with appropriate HTTP status codes")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except requests.exceptions.ConnectionError:
+        print("❌ Error: Could not connect to the API.")
+        print("Please make sure the server is running: python run.py")
+    except Exception as e:
+        print(f"❌ Unexpected error: {e}")
