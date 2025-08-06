@@ -144,10 +144,10 @@ async def upload_document(
                 detail="No file provided or filename is empty"
             )
         
-        # Check file size (max 10MB)
+        # Check file size (max 25MB)
         content = await file.read()
         file_size = len(content)
-        max_size = 10 * 1024 * 1024  # 10MB
+        max_size = 25 * 1024 * 1024  # 25MB
         if file_size > max_size:
             raise HTTPException(
                 status_code=413,
