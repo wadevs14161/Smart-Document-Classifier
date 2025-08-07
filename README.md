@@ -68,10 +68,10 @@ Below is a comprehensive comparison of classification results across four differ
 |---|---|---|---|---|---|
 | **Agreement-Regarding-Quantum-Leap.txt** | 🔵 **Legal Document** | 🔵 **Legal Document** | 🔵 **Legal Document** (45.1%) | 🔵 **Legal Document** (29.5%) |  **Match** |
 | **Grundfosliterature-5615985.pdf** | 🟡 **Technical Documentation** | 🟡 **Technical Documentation** | 🟣 **General Article** (30.6%) | 🔵 **Legal Document** (28.7%) |  **No Match** |
-| **How I use LLMs as a staff engineer.txt** | 🟣 **General Article** | 🟣 **General Article** | ⚫ **Business Proposal** (22.7%) | 🔵 **Legal Document** (27.0%) | ❌ **No Match** |
+| **How I use LLMs as a staff engineer.txt** | 🟣 **General Article** | 🟣 **General Article** | ⚫ **Business Proposal** (22.7%) | 🔵 **Legal Document** (27.0%) | **No Match** |
 | **Lightweight Authenticated Cryptography...txt** | 🟢 **Academic Paper** | 🟢 **Academic Paper** | 🟣 **General Article** | 🟢 **Academic Paper** |  **Partial match** |
 | **Proposal for the Implementation of DAO...txt** | ⚫ **Business Proposal** | ⚫ **Business Proposal** | 🔵 **Legal Document** (25.9%) | 🔵 **Legal Document** (31.9%) |  **No Match** |
-| **Stock Movement and Volatility Prediction...pdf** | 🟢 **Academic Paper** | 🟢 **Academic Paper** | 🟢 **Academic Paper** (23.5%) | 🟢 **Academic Paper** (25.8%) | ✅**Match** |
+| **Stock Movement and Volatility Prediction...pdf** | 🟢 **Academic Paper** | 🟢 **Academic Paper** | 🟢 **Academic Paper** (23.5%) | 🟢 **Academic Paper** (25.8%) | **Match** |
 | **Why Is This C.E.O. Bragging About...pdf** | 🟣 **General Article** | 🟣 **General Article** | 🟣 **General Article** (38.7%) | 🟣 **General Article** (22.8%) |  **Match** |
 
 ### **Model Agreement Analysis**
