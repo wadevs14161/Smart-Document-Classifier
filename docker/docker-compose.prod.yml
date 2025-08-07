@@ -1,0 +1,47 @@
+networks:
+  smart-doc-network:
+    driver: bridge
+
+volumes:
+  app_data:
+    driver: local
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: smart-doc-backend-prod
+    networks:
+      - smart-doc-network
+    volumes:
+      - app_data:/app/data
+      - ../backend/uploads:/app/backend/uploads
+      - ../documents.db:/app/data/documents.db
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite:///app/data/documents.db
+      - UPLOAD_DIR=/app/backend/uploads
+      - DEBUG=false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+      target: production
+    container_name: smart-doc-frontend-prod
+    ports:
+      - "80:80"
+    networks:
+      - smart-doc-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
