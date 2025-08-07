@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { documentAPI } from '../services/api';
-import type { BulkUploadResponse, BulkUploadFileResult, ModelInfo } from '../services/api';
+import type { BulkUploadResponse, BulkUploadFileResult } from '../services/api';
 import './BulkUpload.css';
 
 interface BulkUploadProps {
@@ -18,21 +18,9 @@ const BulkUpload: React.FC<BulkUploadProps> = ({ onUploadSuccess }) => {
   const [selectedFiles, setSelectedFiles] = useState<FileWithStatus[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [availableModels, setAvailableModels] = useState<Record<string, ModelInfo>>({});
   const [selectedModel, setSelectedModel] = useState<string>('bart-large-mnli');
   const [autoClassify, setAutoClassify] = useState<boolean>(true);
   const [uploadResults, setUploadResults] = useState<BulkUploadResponse | null>(null);
-
-  // Load available models on component mount
-  useEffect(() => {
-    documentAPI.getModels()
-      .then(response => {
-        setAvailableModels(response.models);
-      })
-      .catch(error => {
-        console.error('Failed to load models:', error);
-      });
-  }, []);
 
   // Supported file types
   const supportedTypes = ['text/plain', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'];
@@ -187,19 +175,17 @@ const BulkUpload: React.FC<BulkUploadProps> = ({ onUploadSuccess }) => {
       </div>
 
       {/* Model Selection */}
-      <div className="model-selection">
+      <div className="option-group">
         <label htmlFor="model-select">Classification Model:</label>
         <select
           id="model-select"
           value={selectedModel}
           onChange={(e) => setSelectedModel(e.target.value)}
+          className="model-select"
           disabled={isUploading}
         >
-          {Object.entries(availableModels).map(([key, model]) => (
-            <option key={key} value={key}>
-              {model.name}
-            </option>
-          ))}
+          <option value="bart-large-mnli">BART Large MNLI</option>
+          <option value="mdeberta-v3-base">mDeBERTa v3 Base</option>
         </select>
       </div>
 
