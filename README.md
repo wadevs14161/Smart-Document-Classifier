@@ -1,13 +1,6 @@
 # Smart Document Classifier Web Application
 
-A full-stack web applicati> **||||| | **Why Is This C.E.O. Bragging About...pdf** | 🟣 **General Article** | 🟣 **General Article** | 🟣 **General Article** (38.7%) | 🟣 **General Article** (22.8%) | ✅ **Perfect** |*Proposal for the Implementation of DAO...txt** | 🟠 **Business Proposal** | 🟠 **Business Proposal** | 🔵 **Legal Document** (25.9%) | 🔵 **Legal Document** (31.9%) | ❌ **No Match** |**Lightweight Authenticated Cryptography...txt** | 🟢 **Academic Paper** | 🟢 **Academic Paper** | 🟣 **General Article** | 🟢 **Academic Paper** | 🔶 **Partial** |**How I use LLMs as a staff engineer.txt** | 🟣 **General Article** | 🟣 **General Article** | 🟠 **Business Proposal** (22.7%) | 🔵 **Legal Document** (27.0%) | ❌ **No Match** |**Grundfosliterature-5615985.pdf** | 🟡 **Technical Documentation** | 🟡 **Technical Documentation** | 🟣 **General Article** (30.6%) | 🔵 **Legal Document** (28.7%) | ❌ **No Match** |**Agreement-Regarding-Quantum-Leap.txt** | 🔵 **Legal Document** | 🔵 **Legal Document** | 🔵 **Legal Document** (45.1%) | 🔵 **Legal Document** (29.5%) | ✅ **Perfect** |egend**: 🟢 = Academic Paper | 🔵 = Legal Document | 🟡 = Technical Documentation | 🟠 = Business Proposal | 🟣 = General Article | ⚪ = Not classifiedn fo### **Model Agreement Analysis**
-
-| Model Pair | Agreement Rate | Status | Notes |
-|------------|----------------|--------|-------|
-| **Gemini 2.5 Flash vs Grok 3** | 7/7 (100%) | ✅ **Excellent** | Perfect agreement on all classified documents |
-| **BART vs mDeBERTa** | 3/7 (43%) | ❌ **Low** | Agreement on: Legal Document, Academic Paper, General Article |
-| **Gemini/Grok vs BART** | 3/7 (43%) | ❌ **Low** | Agreement on: Legal Document, Academic Paper, General Article |
-| **Gemini/Grok vs mDeBERTa** | 3/7 (43%) | ❌ **Low** | Agreement on: Legal Document, Academic Paper (×2) |igent document classification using deep learning models. The system automatically categorizes uploaded documents (TXT, PDF, DOCX) using zero-shot classification with transformer neural networks.
+A full-stack web application for intelligent document classification using deep learning models. The system automatically categorizes uploaded documents (TXT, PDF, DOCX) using zero-shot classification with transformer neural networks.
 
 ## 📋 Table of Contents
 - [Features](#-features)
@@ -69,35 +62,35 @@ The Smart Document Classifier integrates two state-of-the-art transformer models
 
 Below is a comprehensive comparison of classification results across four different AI models using the same set of test documents:
 
-> **Legend**: 🟢 = Academic Paper | 🔵 = Legal Document | 🟡 = Technical Documentation | � = Business Proposal | 🟣 = General Article | ⚪ = Not classified
+> **Legend**: 🟢 = Academic Paper | 🔵 = Legal Document | 🟡 = Technical Documentation | ⚫ = Business Proposal | 🟣 = General Article | ⚪ = Not classified
 
 | Document | Gemini 2.5 Flash | Grok 3 | BART-Large-MNLI | mDeBERTa-v3-Base | Agreement |
-|----------|------------------|--------|-----------------|------------------|-----------|
-| **Agreement-Regarding-Quantum-Leap.txt** | � **Legal Document** | � **Legal Document** | � **Legal Document** (45.1%) | � **Legal Document** (29.5%) | ✅ **Perfect** |
-| **Grundfosliterature-5615985.pdf** | 🟡 **Technical Documentation** | 🟡 **Technical Documentation** | � **General Article** (30.6%) | � **Legal Document** (28.7%) | ❌ **No Match** |
-| **How I use LLMs as a staff engineer.txt** | � **General Article** | � **General Article** | � **Business Proposal** (22.7%) | � **Legal Document** (27.0%) | ❌ **No Match** |
-| **Lightweight Authenticated Cryptography...txt** | � **Academic Paper** | � **Academic Paper** | � **General Article** | � **Academic Paper** | � **Partial** |
-| **Proposal for the Implementation of DAO...txt** | � **Business Proposal** | � **Business Proposal** | � **Legal Document** (25.9%) | � **Legal Document** (31.9%) | ❌ **No Match** |
-| **Stock Movement and Volatility Prediction...pdf** | 🟢 **Academic Paper** | 🟢 **Academic Paper** | 🟢 **Academic Paper** (23.5%) | 🟢 **Academic Paper** (25.8%) | ✅ **Perfect** |
-| **Why Is This C.E.O. Bragging About...pdf** | � **General Article** | � **General Article** | � **General Article** (38.7%) | � **General Article** (22.8%) | ✅ **Perfect** |
+|---|---|---|---|---|---|
+| **Agreement-Regarding-Quantum-Leap.txt** | 🔵 **Legal Document** | 🔵 **Legal Document** | 🔵 **Legal Document** (45.1%) | 🔵 **Legal Document** (29.5%) |  **Match** |
+| **Grundfosliterature-5615985.pdf** | 🟡 **Technical Documentation** | 🟡 **Technical Documentation** | 🟣 **General Article** (30.6%) | 🔵 **Legal Document** (28.7%) |  **No Match** |
+| **How I use LLMs as a staff engineer.txt** | 🟣 **General Article** | 🟣 **General Article** | ⚫ **Business Proposal** (22.7%) | 🔵 **Legal Document** (27.0%) | ❌ **No Match** |
+| **Lightweight Authenticated Cryptography...txt** | 🟢 **Academic Paper** | 🟢 **Academic Paper** | 🟣 **General Article** | 🟢 **Academic Paper** |  **Partial match** |
+| **Proposal for the Implementation of DAO...txt** | ⚫ **Business Proposal** | ⚫ **Business Proposal** | 🔵 **Legal Document** (25.9%) | 🔵 **Legal Document** (31.9%) |  **No Match** |
+| **Stock Movement and Volatility Prediction...pdf** | 🟢 **Academic Paper** | 🟢 **Academic Paper** | 🟢 **Academic Paper** (23.5%) | 🟢 **Academic Paper** (25.8%) | ✅**Match** |
+| **Why Is This C.E.O. Bragging About...pdf** | 🟣 **General Article** | 🟣 **General Article** | 🟣 **General Article** (38.7%) | 🟣 **General Article** (22.8%) |  **Match** |
 
 ### **Model Agreement Analysis**
 
 | Model Pair | Agreement Rate | Status | Notes |
 |------------|----------------|--------|-------|
-| **Gemini 2.5 Flash vs Grok 3** | 7/7 (100%) | 🟢 **Excellent** | Perfect agreement on all classified documents |
-| **BART vs mDeBERTa** | 3/7 (43%) | � **Low** | Agreement on: Legal Document, Academic Paper, General Article |
-| **Gemini/Grok vs BART** | 3/7 (43%) | � **Low** | Agreement on: Legal Document, Academic Paper, General Article |
-| **Gemini/Grok vs mDeBERTa** | 3/7 (43%) | 🔴 **Low** | Agreement on: Legal Document, Academic Paper (×2) |
+| **Gemini 2.5 Flash vs Grok 3** | 7/7 (100%) | **Excellent** | Perfect agreement on all classified documents |
+| **BART vs mDeBERTa** | 3/7 (43%) | **Low** | Agreement on: Legal Document, Academic Paper, General Article |
+| **Gemini/Grok vs BART** | 3/7 (43%) | **Low** | Agreement on: Legal Document, Academic Paper, General Article |
+| **Gemini/Grok vs mDeBERTa** | 3/7 (43%) | **Low** | Agreement on: Legal Document, Academic Paper (×2) |
 
 ### **Classification Confidence Analysis**
 
 | Model | Avg Confidence | Performance | Confidence Range |
 |-------|----------------|-------------|------------------|
-| **Gemini 2.5 Flash** | N/A | 🟢 **High Accuracy** | External API (no scores) |
-| **Grok 3** | N/A | 🟢 **High Accuracy** | External API (no scores) |
-| **BART-Large-MNLI** | ~30.8% | 🔴 **Low Confidence** | 22.7% - 45.1% |
-| **mDeBERTa-v3-Base** | ~27.6% | 🔴 **Low Confidence** | 22.8% - 31.9% |
+| **Gemini 2.5 Flash** | N/A | **High Accuracy** | External API (no scores) |
+| **Grok 3** | N/A | **High Accuracy** | External API (no scores) |
+| **BART-Large-MNLI** | ~30.8% | **Low Confidence** | 22.7% - 45.1% |
+| **mDeBERTa-v3-Base** | ~27.6% | **Low Confidence** | 22.8% - 31.9% |
 
 ### **Key Observations**
 
