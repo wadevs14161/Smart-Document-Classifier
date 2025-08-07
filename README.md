@@ -66,31 +66,14 @@ Below is a comprehensive comparison of classification results across four differ
 
 | Document | Gemini 2.5 Flash | Grok 3 | BART-Large-MNLI | mDeBERTa-v3-Base | Agreement |
 |---|---|---|---|---|---|
-| **Agreement-Regarding-Quantum-Leap.txt** | 🔵 **Legal Document** | 🔵 **Legal Document** | 🔵 **Legal Document** (45.1%) | 🔵 **Legal Document** (29.5%) |  **Match** |
-| **Grundfosliterature-5615985.pdf** | 🟡 **Technical Documentation** | 🟡 **Technical Documentation** | 🟣 **General Article** (30.6%) | 🔵 **Legal Document** (28.7%) |  **No Match** |
-| **How I use LLMs as a staff engineer.txt** | 🟣 **General Article** | 🟣 **General Article** | ⚫ **Business Proposal** (22.7%) | 🔵 **Legal Document** (27.0%) | **No Match** |
-| **Lightweight Authenticated Cryptography...txt** | 🟢 **Academic Paper** | 🟢 **Academic Paper** | 🟣 **General Article** | 🟢 **Academic Paper** |  **Partial match** |
-| **Proposal for the Implementation of DAO...txt** | ⚫ **Business Proposal** | ⚫ **Business Proposal** | 🔵 **Legal Document** (25.9%) | 🔵 **Legal Document** (31.9%) |  **No Match** |
-| **Stock Movement and Volatility Prediction...pdf** | 🟢 **Academic Paper** | 🟢 **Academic Paper** | 🟢 **Academic Paper** (23.5%) | 🟢 **Academic Paper** (25.8%) | **Match** |
-| **Why Is This C.E.O. Bragging About...pdf** | 🟣 **General Article** | 🟣 **General Article** | 🟣 **General Article** (38.7%) | 🟣 **General Article** (22.8%) |  **Match** |
+| **Agreement-Regarding-Quantum-Leap.txt** | 🔵 **Legal Document** | 🔵 **Legal Document** | 🔵 **Legal Document** (45.1%) | 🔵 **Legal Document** (29.5%) |  ✅ |
+| **Grundfosliterature-5615985.pdf** | 🟡 **Technical Documentation** | 🟡 **Technical Documentation** | 🟣 **General Article** (30.6%) | 🔵 **Legal Document** (28.7%) |  ❌  |
+| **How I use LLMs as a staff engineer.txt** | 🟣 **General Article** | 🟣 **General Article** | ⚫ **Business Proposal** (22.7%) | 🔵 **Legal Document** (27.0%) | ❌ |
+| **Lightweight Authenticated Cryptography...txt** | 🟢 **Academic Paper** | 🟢 **Academic Paper** | 🟣 **General Article** | 🟢 **Academic Paper** |  --  |
+| **Proposal for the Implementation of DAO...txt** | ⚫ **Business Proposal** | ⚫ **Business Proposal** | 🔵 **Legal Document** (25.9%) | 🔵 **Legal Document** (31.9%) |  ❌  |
+| **Stock Movement and Volatility Prediction...pdf** | 🟢 **Academic Paper** | 🟢 **Academic Paper** | 🟢 **Academic Paper** (23.5%) | 🟢 **Academic Paper** (25.8%) | ✅|
+| **Why Is This C.E.O. Bragging About...pdf** | 🟣 **General Article** | 🟣 **General Article** | 🟣 **General Article** (38.7%) | 🟣 **General Article** (22.8%) |  ✅|
 
-### **Model Agreement Analysis**
-
-| Model Pair | Agreement Rate | Status | Notes |
-|------------|----------------|--------|-------|
-| **Gemini 2.5 Flash vs Grok 3** | 7/7 (100%) | **Excellent** | Perfect agreement on all classified documents |
-| **BART vs mDeBERTa** | 3/7 (43%) | **Low** | Agreement on: Legal Document, Academic Paper, General Article |
-| **Gemini/Grok vs BART** | 3/7 (43%) | **Low** | Agreement on: Legal Document, Academic Paper, General Article |
-| **Gemini/Grok vs mDeBERTa** | 3/7 (43%) | **Low** | Agreement on: Legal Document, Academic Paper (×2) |
-
-### **Classification Confidence Analysis**
-
-| Model | Avg Confidence | Performance | Confidence Range |
-|-------|----------------|-------------|------------------|
-| **Gemini 2.5 Flash** | N/A | **High Accuracy** | External API (no scores) |
-| **Grok 3** | N/A | **High Accuracy** | External API (no scores) |
-| **BART-Large-MNLI** | ~30.8% | **Low Confidence** | 22.7% - 45.1% |
-| **mDeBERTa-v3-Base** | ~27.6% | **Low Confidence** | 22.8% - 31.9% |
 
 ### **Key Observations**
 
