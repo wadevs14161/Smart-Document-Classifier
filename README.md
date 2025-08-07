@@ -4,6 +4,7 @@ A full-stack web application for intelligent document classification using deep 
 
 ## 📋 Table of Contents
 - [Features](#-features)
+- [AI Model Selection & Comparison](#-ai-model-selection--comparison)
 - [Architecture Overview](#-architecture-overview)
 - [Quick Start with Docker](#-quick-start-with-docker-recommended)
 - [Setup and Installation](#-setup-and-installation)
@@ -12,6 +13,8 @@ A full-stack web application for intelligent document classification using deep 
 - [Technical Implementation](#-technical-implementation)
 - [Future Improvements](#-future-improvements)
 - [Challenges Encountered](#-challenges-encountered)
+
+---
 
 ## ✨ Features
 
@@ -23,13 +26,39 @@ A full-stack web application for intelligent document classification using deep 
 - **File Format Support**: TXT, PDF, and DOCX files up to 25MB each
 - **Responsive Web Interface**: Modern React frontend with drag-and-drop functionality
 
-### Document Categories
+### Document Classification Categories
 - Technical Documentation
 - Business Proposal  
 - Academic Paper
 - Legal Document
 - General Article
-- Other (fallback category)
+- Other
+
+---
+
+## 🤖 AI Model Selection & Comparison
+
+The Smart Document Classifier integrates two state-of-the-art transformer models, each optimized for different use cases and performance requirements.
+
+### **Available Models**
+
+#### **BART-Large-MNLI (Recommended for English)**
+- **Model ID**: `facebook/bart-large-mnli`
+- **Parameters**: 407 million
+- **Training**: Fine-tuned on Multi-Genre Natural Language Inference (MNLI)
+- **Memory Usage**: ~1.6 GB RAM
+- **Language Support**: English (optimized)
+- **Best For**: English business documents, academic papers, technical documentation
+
+#### **mDeBERTa-v3-Base-MNLI-XNLI (Recommended for Multilingual)**
+- **Model ID**: `MoritzLaurer/mDeBERTa-v3-base-mnli-xnli`
+- **Parameters**: 279 million
+- **Training**: Fine-tuned on MNLI + XNLI (cross-lingual)
+- **Memory Usage**: ~1.2 GB RAM
+- **Language Support**: 100+ languages
+- **Best For**: International documents, multilingual content, diverse language requirements
+
+---
 
 ## 🏗️ Architecture Overview
 
@@ -74,6 +103,8 @@ A full-stack web application for intelligent document classification using deep 
   - Prevents memory overflow from large ML model instances
   - Maintains responsiveness while processing multiple documents
   - Balances throughput with system resource constraints
+
+---
 
 ## 🛠️ Setup and Installation
 
@@ -190,15 +221,7 @@ npm run dev
 - **Alternative API Docs**: http://localhost:8000/redoc
 - **Health Check**: http://localhost:8000/health
 
-### Production Deployment
-```bash
-# Build frontend for production
-cd frontend
-npm run build
-
-# Serve built files with backend
-# Configure FastAPI to serve static files from frontend/dist
-```
+---
 
 ## 📖 Usage Guide
 
@@ -267,6 +290,8 @@ CREATE TABLE documents (
 4. **Result Storage**: Database persistence with metadata
 5. **Response Generation**: Structured JSON response with confidence scores
 
+---
+
 ## 🔮 Future Improvements
 
 ### Short-term Enhancements
@@ -317,6 +342,8 @@ CREATE TABLE documents (
    - Custom dashboard creation
    - Real-time monitoring and alerting
 
+---
+
 ## ⚠️ Challenges Encountered
 
 ### 1. **Memory Management with Large ML Models**
@@ -348,18 +375,3 @@ CREATE TABLE documents (
 **Challenge**: Cold start latency when loading transformer models for first classification.
 **Solution**: Implemented model pre-loading during application startup.
 **Trade-off**: Increased startup time but faster first-request response.
-
-## 🏷️ Tech Stack Summary
-
-- **Frontend**: React 18, TypeScript, Vite, CSS3
-- **Backend**: FastAPI, SQLAlchemy, SQLite, PyTorch
-- **ML/AI**: Hugging Face Transformers, BART-Large-MNLI, mDeBERTa-v3-Base
-- **Development**: ESLint, TypeScript compiler, Uvicorn development server
-- **File Processing**: PyPDF2, python-docx, aiofiles
-- **Async Processing**: asyncio, concurrent processing with semaphores
-
----
-
-**Project Status**: Production-ready with comprehensive error handling and scalable architecture.  
-**Development Timeline**: ~2 weeks of iterative development and testing.  
-**Primary Use Case**: Technical assessment demonstrating full-stack ML application development.
