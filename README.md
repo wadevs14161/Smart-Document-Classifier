@@ -5,6 +5,7 @@ A full-stack web application for intelligent document classification using deep 
 ## 📋 Table of Contents
 - [Features](#-features)
 - [Architecture Overview](#-architecture-overview)
+- [Quick Start with Docker](#-quick-start-with-docker-recommended)
 - [Setup and Installation](#-setup-and-installation)
 - [Running the Application](#-running-the-application)
 - [Usage Guide](#-usage-guide)
@@ -82,7 +83,46 @@ A full-stack web application for intelligent document classification using deep 
 - **Git** for version control
 - **Minimum 4GB RAM** (8GB recommended for smooth ML model loading)
 
-### 1. Environment Setup
+### 🐳 Quick Start with Docker (Recommended)
+
+The fastest way to get the application running is using Docker. All dependencies and configurations are handled automatically.
+
+#### Prerequisites for Docker
+- **Docker** and **Docker Compose** installed
+- **Minimum 4GB RAM** available
+
+#### Start Application
+```bash
+# Clone repository
+git clone https://github.com/wadevs14161/Smart-Document-Classifier.git
+cd Smart-Document-Classifier
+
+# Start development environment
+cd docker
+./docker-helper.sh dev-up
+
+# Alternative: Direct docker-compose command
+docker-compose up --build
+```
+
+#### Access Application
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+
+#### Management Commands
+```bash
+# Stop all services
+./docker-helper.sh dev-down
+
+# View logs
+./docker-helper.sh logs
+
+# Production deployment
+./docker-helper.sh prod-up
+```
+
+### 1. Manual Environment Setup (Alternative)
 
 #### Clone Repository
 ```bash

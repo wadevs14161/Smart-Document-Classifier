@@ -29,33 +29,58 @@ The application is pre-configured to classify documents into the following categ
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### 🐳 Docker Setup (Recommended)
+
+The easiest way to run the application with all dependencies configured:
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd compu-J
+
+# Start with Docker
+cd docker
+./docker-helper.sh prod-up
+```
+
+**Access Application:**
+- **Frontend**: http://localhost:80
+- **Backend API**: http://localhost:80/api
+- **API Documentation**: http://localhost:80/docs
+
+**Docker Commands:**
+```bash
+# Stop services
+./docker-helper.sh prod-down
+
+# View logs
+./docker-helper.sh logs
+```
+
+### 📦 Manual Setup (Alternative)
+
+#### Prerequisites
 - Python 3.8+
 - Node.js 16+
 - Git
 
-### 1. Clone and Setup Backend
+#### Setup & Run
 ```bash
+# Clone and setup backend
 git clone <repository-url>
 cd compu-J
-
-# Create virtual environment
 python -m venv .venv-compuj
 source .venv-compuj/bin/activate
-
-# Install dependencies and start backend
 pip install -r requirements.txt
 python run.py
-```
 
-### 2. Setup Frontend
-```bash
+# Setup frontend (new terminal)
 cd frontend
 npm install
 npm run dev
 ```
 
-### 3. Access Application
+#### Access
 - **Frontend**: http://localhost:3000
 - **API Documentation**: http://localhost:8000/docs
 
