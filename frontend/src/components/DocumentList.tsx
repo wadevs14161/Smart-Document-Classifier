@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { documentAPI } from '../services/api';
-import type { Document, ClassificationResult, AvailableModelsResponse, ModelInfo } from '../services/api';
+import type { Document, ClassificationResult, ModelInfo } from '../services/api';
 import './DocumentList.css';
 
 interface DocumentListProps {

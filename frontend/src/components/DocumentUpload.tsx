@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { documentAPI } from '../services/api';
-import type { UploadResponse, AvailableModelsResponse, ModelInfo } from '../services/api';
+import type { UploadResponse, ModelInfo } from '../services/api';
 import './DocumentUpload.css';
 
 interface DocumentUploadProps {
