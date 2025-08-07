@@ -3,6 +3,19 @@ import { documentAPI } from '../services/api';
 import type { Document } from '../services/api';
 import './StatisticsDashboard.css';
 
+interface ModelComparison {
+  modelName: string;
+  documentCount: number;
+  averageConfidence: number;
+  categoryDistribution: Record<string, number>;
+  confidenceDistribution: {
+    high: number;
+    medium: number;
+    low: number;
+  };
+  averageInferenceTime: number;
+}
+
 interface Statistics {
   totalDocuments: number;
   classifiedDocuments: number;
@@ -21,6 +34,13 @@ interface Statistics {
     thisMonth: number;
   };
   recentActivity: Document[];
+  modelComparison: ModelComparison[];
+  sameDocumentComparisons: Array<{
+    filename: string;
+    bartResult: { category: string; confidence: number; time: number } | null;
+    mdebertaResult: { category: string; confidence: number; time: number } | null;
+    agreement: boolean;
+  }>;
 }
 
 const StatisticsDashboard: React.FC = () => {
@@ -43,11 +63,17 @@ const StatisticsDashboard: React.FC = () => {
       averageConfidence: 0,
       confidenceDistribution: { high: 0, medium: 0, low: 0 },
       uploadTrends: { today: 0, thisWeek: 0, thisMonth: 0 },
-      recentActivity: documents.slice(0, 5)
+      recentActivity: documents.slice(0, 5),
+      modelComparison: [],
+      sameDocumentComparisons: []
     };
 
     let totalConfidence = 0;
     let confidenceCount = 0;
+
+    // Group documents by model for comparison
+    const modelGroups: Record<string, Document[]> = {};
+    const documentsByFilename: Record<string, Document[]> = {};
 
     documents.forEach(doc => {
       // Document type distribution
@@ -63,6 +89,20 @@ const StatisticsDashboard: React.FC = () => {
       // Model usage
       if (doc.model_used) {
         stats.modelUsage[doc.model_used] = (stats.modelUsage[doc.model_used] || 0) + 1;
+        
+        // Group by model
+        if (!modelGroups[doc.model_used]) {
+          modelGroups[doc.model_used] = [];
+        }
+        modelGroups[doc.model_used].push(doc);
+      }
+
+      // Group by filename for same-document comparisons
+      if (doc.original_filename) {
+        if (!documentsByFilename[doc.original_filename]) {
+          documentsByFilename[doc.original_filename] = [];
+        }
+        documentsByFilename[doc.original_filename].push(doc);
       }
 
       // Confidence distribution
@@ -93,6 +133,75 @@ const StatisticsDashboard: React.FC = () => {
     });
 
     stats.averageConfidence = confidenceCount > 0 ? totalConfidence / confidenceCount : 0;
+
+    // Calculate model comparison statistics
+    stats.modelComparison = Object.entries(modelGroups).map(([modelName, docs]) => {
+      const categoryDist: Record<string, number> = {};
+      const confDist = { high: 0, medium: 0, low: 0 };
+      let totalConf = 0;
+      let totalTime = 0;
+      let confCount = 0;
+      let timeCount = 0;
+
+      docs.forEach(doc => {
+        if (doc.predicted_category) {
+          categoryDist[doc.predicted_category] = (categoryDist[doc.predicted_category] || 0) + 1;
+        }
+
+        if (doc.confidence_score !== null && doc.confidence_score !== undefined) {
+          totalConf += doc.confidence_score;
+          confCount++;
+          
+          if (doc.confidence_score >= 0.7) confDist.high++;
+          else if (doc.confidence_score >= 0.4) confDist.medium++;
+          else confDist.low++;
+        }
+
+        if (doc.inference_time !== null && doc.inference_time !== undefined) {
+          totalTime += doc.inference_time;
+          timeCount++;
+        }
+      });
+
+      return {
+        modelName,
+        documentCount: docs.length,
+        averageConfidence: confCount > 0 ? totalConf / confCount : 0,
+        categoryDistribution: categoryDist,
+        confidenceDistribution: confDist,
+        averageInferenceTime: timeCount > 0 ? totalTime / timeCount : 0
+      };
+    });
+
+    // Calculate same-document comparisons
+    stats.sameDocumentComparisons = Object.entries(documentsByFilename)
+      .filter(([_, docs]) => docs.length >= 2)
+      .map(([filename, docs]) => {
+        const bartDoc = docs.find(d => d.model_key === 'bart-large-mnli');
+        const mdebertaDoc = docs.find(d => d.model_key === 'mdeberta-v3-base');
+
+        const bartResult = bartDoc ? {
+          category: bartDoc.predicted_category || 'Unknown',
+          confidence: bartDoc.confidence_score || 0,
+          time: bartDoc.inference_time || 0
+        } : null;
+
+        const mdebertaResult = mdebertaDoc ? {
+          category: mdebertaDoc.predicted_category || 'Unknown',
+          confidence: mdebertaDoc.confidence_score || 0,
+          time: mdebertaDoc.inference_time || 0
+        } : null;
+
+        const agreement = bartResult && mdebertaResult ? 
+          bartResult.category === mdebertaResult.category : false;
+
+        return {
+          filename,
+          bartResult,
+          mdebertaResult,
+          agreement
+        };
+      });
 
     return stats;
   };
@@ -209,6 +318,153 @@ const StatisticsDashboard: React.FC = () => {
           <div className="stat-content">
             <h3>Today's Uploads</h3>
             <p className="stat-number">{statistics.uploadTrends.today}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Model Comparison Section */}
+      <div className="model-comparison-section">
+        <h2>🤖 AI Model Performance Comparison</h2>
+        
+        {/* Model Overview Cards */}
+        <div className="model-overview-grid">
+          {statistics.modelComparison.map((model, index) => (
+            <div key={model.modelName} className={`model-card ${index === 0 ? 'primary-model' : 'secondary-model'}`}>
+              <div className="model-header">
+                <h3>{model.modelName}</h3>
+                <div className="model-badge">
+                  {model.modelName.includes('BART') ? '🅱️' : '🇲'}
+                </div>
+              </div>
+              
+              <div className="model-stats">
+                <div className="model-stat">
+                  <span className="stat-label">Documents Processed</span>
+                  <span className="stat-value">{model.documentCount}</span>
+                </div>
+                
+                <div className="model-stat">
+                  <span className="stat-label">Average Confidence</span>
+                  <span className="stat-value">{formatConfidence(model.averageConfidence)}%</span>
+                </div>
+                
+                <div className="model-stat">
+                  <span className="stat-label">Avg Inference Time</span>
+                  <span className="stat-value">{model.averageInferenceTime.toFixed(2)}s</span>
+                </div>
+                
+                <div className="model-stat">
+                  <span className="stat-label">High Confidence Classifications</span>
+                  <span className="stat-value">{model.confidenceDistribution.high}</span>
+                </div>
+              </div>
+
+              {/* Model-specific confidence distribution */}
+              <div className="model-confidence-viz">
+                <div className="confidence-bar-container">
+                  <div 
+                    className="confidence-segment high-conf"
+                    style={{ 
+                      width: `${(model.confidenceDistribution.high / model.documentCount) * 100}%` 
+                    }}
+                    title={`High confidence: ${model.confidenceDistribution.high} documents`}
+                  ></div>
+                  <div 
+                    className="confidence-segment medium-conf"
+                    style={{ 
+                      width: `${(model.confidenceDistribution.medium / model.documentCount) * 100}%` 
+                    }}
+                    title={`Medium confidence: ${model.confidenceDistribution.medium} documents`}
+                  ></div>
+                  <div 
+                    className="confidence-segment low-conf"
+                    style={{ 
+                      width: `${(model.confidenceDistribution.low / model.documentCount) * 100}%` 
+                    }}
+                    title={`Low confidence: ${model.confidenceDistribution.low} documents`}
+                  ></div>
+                </div>
+                <div className="confidence-legend">
+                  <span className="legend-item high">High (≥70%)</span>
+                  <span className="legend-item medium">Medium (40-69%)</span>
+                  <span className="legend-item low">Low (&lt;40%)</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Head-to-Head Comparison */}
+        <div className="head-to-head-section">
+          <h3>🔍 Head-to-Head Document Comparisons</h3>
+          <div className="comparison-stats">
+            <div className="agreement-summary">
+              <div className="agreement-stat">
+                <span className="agreement-label">Total Comparisons</span>
+                <span className="agreement-value">{statistics.sameDocumentComparisons.length}</span>
+              </div>
+              <div className="agreement-stat">
+                <span className="agreement-label">Model Agreement</span>
+                <span className="agreement-value">
+                  {statistics.sameDocumentComparisons.filter(comp => comp.agreement).length}/
+                  {statistics.sameDocumentComparisons.length}
+                  ({formatPercentage(
+                    statistics.sameDocumentComparisons.filter(comp => comp.agreement).length,
+                    statistics.sameDocumentComparisons.length
+                  )}%)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Individual Comparisons */}
+          <div className="comparison-list">
+            {statistics.sameDocumentComparisons.map((comparison, index) => (
+              <div key={index} className={`comparison-item ${comparison.agreement ? 'agreement' : 'disagreement'}`}>
+                <div className="comparison-header">
+                  <div className="filename-container">
+                    <span className="comparison-filename">{comparison.filename}</span>
+                    <div className={`agreement-indicator ${comparison.agreement ? 'agree' : 'disagree'}`}>
+                      {comparison.agreement ? '✅ Agreement' : '❌ Disagreement'}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="model-results">
+                  <div className="model-result bart-result">
+                    <div className="model-name">BART-Large-MNLI</div>
+                    {comparison.bartResult ? (
+                      <>
+                        <div className="result-category">{comparison.bartResult.category}</div>
+                        <div className="result-metrics">
+                          <span className="confidence">{formatConfidence(comparison.bartResult.confidence)}%</span>
+                          <span className="inference-time">{comparison.bartResult.time.toFixed(2)}s</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="no-result">No classification</div>
+                    )}
+                  </div>
+                  
+                  <div className="vs-divider">VS</div>
+                  
+                  <div className="model-result mdeberta-result">
+                    <div className="model-name">mDeBERTa-v3-Base</div>
+                    {comparison.mdebertaResult ? (
+                      <>
+                        <div className="result-category">{comparison.mdebertaResult.category}</div>
+                        <div className="result-metrics">
+                          <span className="confidence">{formatConfidence(comparison.mdebertaResult.confidence)}%</span>
+                          <span className="inference-time">{comparison.mdebertaResult.time.toFixed(2)}s</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="no-result">No classification</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
