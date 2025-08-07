@@ -169,49 +169,106 @@ class DocumentProcessor:
                 
             if len(docx_content) == 0:
                 raise DocumentProcessingError("DOCX file is empty")
+            
+            # Primary method: Try python-docx library
+            try:
+                logger.debug("Attempting text extraction using python-docx")
+                doc = DocxDocument(BytesIO(docx_content))
                 
-            doc = DocxDocument(BytesIO(docx_content))
-            
-            text_content = ""
-            paragraphs_processed = 0
-            tables_processed = 0
-            
-            # Extract text from paragraphs
-            logger.debug("Extracting text from paragraphs")
-            for paragraph in doc.paragraphs:
-                para_text = paragraph.text.strip()
-                if para_text:
-                    text_content += para_text + "\n"
-                    paragraphs_processed += 1
-            
-            # Extract text from tables
-            logger.debug("Extracting text from tables")
-            for table in doc.tables:
-                table_text = ""
-                for row in table.rows:
-                    row_text = []
-                    for cell in row.cells:
-                        cell_text = cell.text.strip()
-                        if cell_text:
-                            row_text.append(cell_text)
-                    if row_text:
-                        table_text += " | ".join(row_text) + "\n"
+                text_content = ""
+                paragraphs_processed = 0
+                tables_processed = 0
                 
-                if table_text:
-                    text_content += "\n" + table_text + "\n"
-                    tables_processed += 1
-            
-            if not text_content.strip():
-                raise DocumentProcessingError("No readable text found in DOCX document")
-            
-            # Clean up extracted text
-            text_content = text_content.strip()
-            # Normalize whitespace while preserving line breaks
-            lines = [' '.join(line.split()) for line in text_content.split('\n')]
-            text_content = '\n'.join(line for line in lines if line.strip())
-            
-            logger.info(f"Successfully extracted text from DOCX document ({paragraphs_processed} paragraphs, {tables_processed} tables, {len(text_content)} characters)")
-            return text_content
+                # Extract text from paragraphs
+                logger.debug("Extracting text from paragraphs")
+                for paragraph in doc.paragraphs:
+                    para_text = paragraph.text.strip()
+                    if para_text:
+                        text_content += para_text + "\n"
+                        paragraphs_processed += 1
+                
+                # Extract text from tables
+                logger.debug("Extracting text from tables")
+                for table in doc.tables:
+                    table_text = ""
+                    for row in table.rows:
+                        row_text = []
+                        for cell in row.cells:
+                            cell_text = cell.text.strip()
+                            if cell_text:
+                                row_text.append(cell_text)
+                        if row_text:
+                            table_text += " | ".join(row_text) + "\n"
+                    
+                    if table_text:
+                        text_content += "\n" + table_text + "\n"
+                        tables_processed += 1
+                
+                if not text_content.strip():
+                    logger.warning("No text extracted using python-docx, trying fallback method")
+                    raise Exception("No text content found")
+                
+                # Clean up extracted text
+                text_content = text_content.strip()
+                # Normalize whitespace while preserving line breaks
+                lines = [' '.join(line.split()) for line in text_content.split('\n')]
+                text_content = '\n'.join(line for line in lines if line.strip())
+                
+                logger.info(f"Successfully extracted text from DOCX document ({paragraphs_processed} paragraphs, {tables_processed} tables, {len(text_content)} characters)")
+                return text_content
+                
+            except Exception as primary_error:
+                logger.warning(f"Primary DOCX extraction failed: {str(primary_error)}")
+                logger.info("Attempting fallback extraction method...")
+                
+                # Fallback method: Try extracting from XML directly
+                import zipfile
+                from xml.etree import ElementTree as ET
+                
+                try:
+                    with zipfile.ZipFile(BytesIO(docx_content), 'r') as docx_zip:
+                        # Try to read document.xml directly
+                        try:
+                            document_xml = docx_zip.read('word/document.xml')
+                        except KeyError:
+                            # Some DOCX files might have different structure
+                            xml_files = [name for name in docx_zip.namelist() if name.endswith('.xml') and 'document' in name]
+                            if xml_files:
+                                document_xml = docx_zip.read(xml_files[0])
+                            else:
+                                raise Exception("No document XML found in DOCX file")
+                        
+                        # Parse XML and extract text
+                        root = ET.fromstring(document_xml)
+                        
+                        # Remove namespace prefixes for easier parsing
+                        for elem in root.iter():
+                            if '}' in elem.tag:
+                                elem.tag = elem.tag.split('}')[1]
+                        
+                        # Extract text from all text nodes
+                        text_nodes = root.findall('.//t')
+                        text_content = ""
+                        
+                        for node in text_nodes:
+                            if node.text:
+                                text_content += node.text + " "
+                        
+                        if not text_content.strip():
+                            raise Exception("No text content found in XML")
+                        
+                        # Clean up extracted text
+                        text_content = ' '.join(text_content.split())  # Normalize whitespace
+                        
+                        logger.info(f"Fallback extraction successful: extracted {len(text_content)} characters from DOCX")
+                        return text_content
+                        
+                except Exception as fallback_error:
+                    logger.error(f"Fallback DOCX extraction also failed: {str(fallback_error)}")
+                    raise DocumentProcessingError(
+                        f"Could not extract text from DOCX file. Primary error: {str(primary_error)}. "
+                        f"Fallback error: {str(fallback_error)}. The file may be corrupted or use an unsupported DOCX format."
+                    )
             
         except DocumentProcessingError:
             raise
